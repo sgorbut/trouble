@@ -38,6 +38,13 @@ class SettingsScreen extends ConsumerWidget {
                 value: settings.autoMoveSingle,
                 onChanged: notifier.setAutoMove,
               ),
+              SwitchListTile(
+                secondary: const Icon(Icons.casino_outlined),
+                title: const Text('Жребий перед игрой'),
+                subtitle: const Text('Все бросают кубик, первым ходит выбросивший больше. При ничьей — переброс'),
+                value: settings.lotteryStart,
+                onChanged: notifier.setLottery,
+              ),
               const Divider(),
               ListTile(
                 leading: const Icon(Icons.rotate_left),

@@ -120,8 +120,12 @@ class _GameScreenState extends ConsumerState<GameScreen> {
               return Row(
                 children: [
                   Expanded(child: Center(child: BoardView(side: side))),
-                  SizedBox(
+                  // Панель игрока и счёта отделена от поля полосой.
+                  Container(
                     width: panelWidth,
+                    decoration: const BoxDecoration(
+                      border: Border(left: BorderSide(color: Colors.black12, width: 2)),
+                    ),
                     child: Padding(
                       padding: const EdgeInsets.all(pad),
                       child: _ControlPanel(view: view, vertical: true),
@@ -130,15 +134,19 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                 ],
               );
             }
-            const panelHeight = 110.0;
+            const panelHeight = 124.0;
             final side = min(c.maxWidth, c.maxHeight - panelHeight) - pad * 2;
             return Column(
               children: [
                 Expanded(child: Center(child: BoardView(side: side))),
-                SizedBox(
+                // Панель игрока и счёта отделена от поля полосой.
+                Container(
                   height: panelHeight,
+                  decoration: const BoxDecoration(
+                    border: Border(top: BorderSide(color: Colors.black12, width: 2)),
+                  ),
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(pad, 0, pad, pad),
+                    padding: const EdgeInsets.all(pad),
                     child: _ControlPanel(view: view, vertical: false),
                   ),
                 ),
@@ -164,6 +172,9 @@ class _ControlPanel extends StatelessWidget {
     if (view.notice != null) return view.notice!;
     if (game.phase == GamePhase.finished) return 'Победа!';
     if (view.rolling) return 'Бросок…';
+    if (view.lottery != null) {
+      return player.isBot ? 'Бот бросает жребий…' : 'Жребий: бросьте кубик';
+    }
     if (player.isBot) {
       return game.phase == GamePhase.waitingForMove || game.phase == GamePhase.animating
           ? 'Бот ходит…'
@@ -285,7 +296,12 @@ class _Scores extends StatelessWidget {
                 const SizedBox(width: 6),
               ],
               Text(
-                '${p.pieces.where((x) => x.isFinished).length}/${p.pieces.length}',
+                // Во время жребия — выпавшее значение, иначе — сколько фишек в финише.
+                view.lottery != null
+                    ? (view.lottery!.rolls[p.color] != null
+                        ? '🎲 ${view.lottery!.rolls[p.color]}'
+                        : view.lottery!.contenders.contains(p.color) ? '🎲 …' : '—')
+                    : '${p.pieces.where((x) => x.isFinished).length}/${p.pieces.length}',
                 style: const TextStyle(fontWeight: FontWeight.w600, fontFeatures: [FontFeature.tabularFigures()]),
               ),
             ],

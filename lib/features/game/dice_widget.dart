@@ -264,10 +264,8 @@ class _PipsPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     if (value == 0) {
       final tp = TextPainter(
-        text: TextSpan(
-          text: '?',
-          style: TextStyle(fontSize: size.width * 0.5, color: Colors.black26, fontWeight: FontWeight.bold),
-        ),
+        // Кубик ещё не брошен.
+        text: TextSpan(text: '🎲', style: TextStyle(fontSize: size.width * 0.55, height: 1.0)),
         textDirection: TextDirection.ltr,
       )..layout();
       tp.paint(canvas, size.center(Offset.zero) - Offset(tp.width / 2, tp.height / 2));

@@ -21,6 +21,17 @@ class BoardEffect {
 
 enum BoardEffectKind { capture, finish }
 
+/// Жребий перед партией: кто выбросит больше, ходит первым; при ничьей лидеры перебрасывают.
+class Lottery {
+  const Lottery(this.contenders, this.rolls);
+
+  /// Кто сейчас участвует в жребии (в порядке ходов).
+  final List<PlayerColor> contenders;
+
+  /// Выпавшие значения в текущем круге жребия.
+  final Map<PlayerColor, int> rolls;
+}
+
 /// Состояние экрана игры: логическое состояние партии плюс то, что нужно для анимаций.
 class GameViewState {
   const GameViewState({
@@ -37,6 +48,7 @@ class GameViewState {
     this.notice,
     this.paused = false,
     this.undoSnapshot,
+    this.lottery,
   });
 
   final GameState game;
@@ -61,6 +73,9 @@ class GameViewState {
   /// Состояние перед последним ходом человека (с тем же броском) — для отмены.
   /// Хранится только одно: отменить можно ровно один ход.
   final GameState? undoSnapshot;
+
+  /// Идёт жребий за право первого хода (null — партия уже началась).
+  final Lottery? lottery;
 
   bool get canUndo =>
       undoSnapshot != null &&
@@ -92,6 +107,7 @@ class GameViewState {
     String? Function()? notice,
     bool? paused,
     GameState? Function()? undoSnapshot,
+    Lottery? Function()? lottery,
   }) =>
       GameViewState(
         game: game ?? this.game,
@@ -107,6 +123,7 @@ class GameViewState {
         notice: notice != null ? notice() : this.notice,
         paused: paused ?? this.paused,
         undoSnapshot: undoSnapshot != null ? undoSnapshot() : this.undoSnapshot,
+        lottery: lottery != null ? lottery() : this.lottery,
       );
 }
 
@@ -128,16 +145,20 @@ class GameController extends Notifier<GameViewState?> {
 
   GameViewState get _s => state!;
 
-  /// Новая партия. Направление по умолчанию берётся из настроек.
-  void start(List<PlayerConfig> configs, {MoveDirection? direction}) {
+  /// Новая партия. Направление и жребий по умолчанию берутся из настроек.
+  void start(List<PlayerConfig> configs, {MoveDirection? direction, bool? lottery}) {
     _epoch++;
-    final dir = direction ?? ref.read(settingsProvider).direction;
+    final settings = ref.read(settingsProvider);
+    final dir = direction ?? settings.direction;
     final game = GameEngine.newGame(configs, direction: dir);
+    final useLottery = lottery ?? settings.lotteryStart;
     state = GameViewState(
       game: game,
       configs: configs,
       direction: dir,
       display: _displayFrom(game),
+      lottery: useLottery ? Lottery([for (final p in game.players) p.color], const {}) : null,
+      notice: useLottery ? 'Жребий: кто выбросит больше, ходит первым' : null,
     );
     _scheduleBotTurn();
   }
@@ -194,6 +215,7 @@ class GameController extends Notifier<GameViewState?> {
   }
 
   Future<void> _roll(int epoch) async {
+    if (_s.lottery != null) return _lotteryRoll(epoch);
     final before = _s.game;
     if (before.phase != GamePhase.waitingForRoll) return;
     state = _s.copyWith(
@@ -231,11 +253,69 @@ class GameController extends Notifier<GameViewState?> {
 
     if (rolled.currentPlayer.isBot) {
       if (!await _wait(_botDelay(), epoch)) return;
-      await _executeMove(Bot.chooseMove(moves)!, epoch);
+      await _executeMove(Bot.chooseMove(moves, random: _random)!, epoch);
     } else if (moves.length == 1 && ref.read(settingsProvider).autoMoveSingle) {
       if (!await _wait(const Duration(milliseconds: 350), epoch)) return;
       await _executeMove(moves.single, epoch);
     }
+  }
+
+  /// Бросок жребия текущим участником. Когда все бросили: один лидер — он ходит первым,
+  /// несколько с одинаковым максимумом — перебрасывают только они.
+  Future<void> _lotteryRoll(int epoch) async {
+    final before = _s.game;
+    if (before.phase != GamePhase.waitingForRoll) return;
+    final lot = _s.lottery!;
+    final player = before.currentPlayer;
+    state = _s.copyWith(
+      rolling: true,
+      game: before.copyWith(phase: GamePhase.animating),
+      notice: () => null,
+    );
+    _sound.play(GameSound.roll);
+    if (!await _wait(diceRollDuration, epoch)) return;
+
+    final dice = GameEngine.rollDice(_random);
+    final rolls = {...lot.rolls, player.color: dice};
+    state = _s.copyWith(
+      rolling: false,
+      shownDice: () => dice,
+      lottery: () => Lottery(lot.contenders, rolls),
+      notice: () => '${player.name}: $dice',
+    );
+    if (!await _wait(lotteryPause, epoch)) return;
+
+    int indexOf(PlayerColor c) => before.players.indexWhere((p) => p.color == c);
+    String nameOf(PlayerColor c) => before.players[indexOf(c)].name;
+    GameState turnOf(PlayerColor c) => before.copyWith(
+          currentPlayerIndex: indexOf(c),
+          phase: GamePhase.waitingForRoll,
+          diceValue: () => null,
+        );
+
+    final pending = lot.contenders.where((c) => !rolls.containsKey(c)).toList();
+    if (pending.isNotEmpty) {
+      state = _s.copyWith(game: turnOf(pending.first), shownDice: () => null, notice: () => null);
+    } else {
+      final best = lot.contenders.map((c) => rolls[c]!).reduce(max);
+      final leaders = lot.contenders.where((c) => rolls[c] == best).toList();
+      if (leaders.length > 1) {
+        state = _s.copyWith(
+          game: turnOf(leaders.first),
+          shownDice: () => null,
+          lottery: () => Lottery(leaders, const {}),
+          notice: () => 'Ничья ($best): ${leaders.map(nameOf).join(', ')} — перебрасывают',
+        );
+      } else {
+        state = _s.copyWith(
+          game: turnOf(leaders.single),
+          shownDice: () => null,
+          lottery: () => null,
+          notice: () => 'Первым ходит ${nameOf(leaders.single)}',
+        );
+      }
+    }
+    _scheduleBotTurn();
   }
 
   /// Нажатие на фишку. Один допустимый ход — выполняется сразу; иначе первое нажатие

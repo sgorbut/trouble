@@ -305,6 +305,17 @@ void main() {
     });
   });
 
+  group('бот со случайной стратегией', () {
+    test('всегда выбирает допустимый ход и не всегда один и тот же', () {
+      final s = makeState(red: [5, 20, -1], yellow: [progressAt(yellow, redCell(8)), -1, -1]);
+      final moves = GameEngine.getLegalMoves(s, 3);
+      final random = Random(7);
+      final chosen = {for (var i = 0; i < 60; i++) Bot.chooseMove(moves, random: random)!};
+      expect(chosen.every(moves.contains), isTrue);
+      expect(chosen.length, greaterThan(1));
+    });
+  });
+
   group('против часовой стрелки', () {
     test('фишка идёт к меньшим индексам кольца', () {
       final s = makeState(red: [0, -1, -1], direction: ccw);
