@@ -1,86 +1,194 @@
-# Trouble — настольная игра на Flutter
+import 'dart:math';
 
-Офлайн-игра для 2–4 игроков на одном устройстве (hot-seat), любого игрока можно заменить ботом.
-Поле 9×9, кольцо из 32 клеток по краю поля, модифицированные правила (выход из дома при любом броске,
-сдвиг за своей фишкой, финиш без точного броска).
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:trouble_game/core/constants.dart';
+import 'package:trouble_game/core/game/engine.dart';
+import 'package:trouble_game/core/game/models.dart';
+import 'package:trouble_game/features/game/game_controller.dart';
+import 'package:trouble_game/features/game/game_screen.dart';
+import 'package:trouble_game/features/win/win_screen.dart';
+import 'package:trouble_game/ui/theme.dart';
 
-## Запуск
+void main() {
+  testWidgets('партия двух ботов доходит до экрана победы', (tester) async {
+    SharedPreferences.setMockInitialValues({'soundEnabled': false});
+    tester.view.physicalSize = const Size(800, 1200);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
 
-```bash
-flutter pub get
-flutter run              # выбрать устройство: Android / iOS / Chrome / macOS
-flutter test             # unit-тесты движка и геометрии + сквозной тест партии ботов
-flutter analyze
-```
+    final container = ProviderContainer(
+      overrides: [randomProvider.overrideWithValue(Random(7))],
+    );
+    addTearDown(container.dispose);
 
-Сборка:
+    await tester.pumpWidget(UncontrolledProviderScope(
+      container: container,
+      child: MaterialApp(theme: AppTheme.light(), home: const Scaffold()),
+    ));
 
-```bash
-flutter build apk --release      # Android
-flutter build ios --release      # iOS (нужен Xcode и подпись)
-flutter build web --release      # Web → build/web
-flutter build macos --release    # macOS
-```
+    container.read(gameControllerProvider.notifier).start(const [
+      PlayerConfig(color: PlayerColor.red, type: PlayerType.bot, name: 'Бот 1'),
+      PlayerConfig(color: PlayerColor.yellow, type: PlayerType.bot, name: 'Бот 2'),
+    ], lottery: false);
+    final nav = tester.state<NavigatorState>(find.byType(Navigator));
+    nav.push(MaterialPageRoute<void>(builder: (_) => const GameScreen()));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(find.byType(GameScreen), findsOneWidget);
 
-## Архитектура
+    for (var i = 0; i < 20000 && find.byType(WinScreen).evaluate().isEmpty; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    await tester.pumpAndSettle();
 
-```
-lib/
-  main.dart                    # ProviderScope + MaterialApp
-  core/                        # чистый Dart, без импортов Flutter
-    constants.dart             # размеры поля, длины пути, тайминги
-    game/
-      models.dart              # PlayerColor, Piece, Player, Move, GameState (иммутабельные)
-      engine.dart              # GameEngine: rollDice, getLegalMoves, applyRoll, applyMove, passTurn, isFinished
-      bot.dart                 # выбор хода бота по приоритетам
-      board_geometry.dart      # индекс кольца / дом / финиш → клетка сетки
-  features/
-    menu/                      # главное меню
-    setup/                     # настройка партии: число игроков, человек/бот, имена
-    game/
-      game_controller.dart     # Riverpod Notifier: ход партии, анимации, боты, пауза
-      board_painter.dart       # CustomPainter поля (кольцо, дома, финиши, стартовые клетки)
-      board_view.dart          # Stack: поле + фишки (AnimatedPositioned) + эффекты
-      dice_widget.dart         # кубик с анимацией вращения
-      game_screen.dart         # экран игры (портрет / ландшафт)
-      sound_service.dart       # звуки; если файлов нет — молча пропускает
-    settings/                  # звук, автоход, направление хода (shared_preferences)
-    rules/                     # краткие правила
-    win/                       # экран победы
-  ui/theme.dart                # цвета игроков, тема
-assets/sounds/                 # roll / move / capture / win (.wav, можно заменить или удалить)
-test/
-  engine_test.dart             # правила из раздела 2 ТЗ, бот, симуляция полной партии
-  board_geometry_test.dart     # уникальность и смежность клеток кольца, углы-старты
-  game_flow_test.dart          # виджет-тест: партия двух ботов до экрана победы
-```
+    expect(find.byType(WinScreen), findsOneWidget);
+    expect(find.text('Победа!'), findsOneWidget);
+    expect(container.read(gameControllerProvider)!.game.winner, isNotNull);
+  });
 
-**Поток данных.** `GameController` хранит `GameViewState` = логическое `GameState` + данные
-для отрисовки (`display` — текущие позиции фишек во время анимации, выбранная фишка, эффекты).
-Движок рассчитывает ход целиком (`Move`: откуда, куда, кого сбили), контроллер проигрывает
-его шаг за шагом (150 мс на клетку) и затем применяет `GameEngine.applyMove`. Во время анимации
-`phase == animating`, ввод заблокирован. Асинхронные цепочки (боты, анимации) прерываются при
-рестарте или выходе с экрана через счётчик эпох.
+  testWidgets('кубик сбрасывается перед следующим броском', (tester) async {
+    SharedPreferences.setMockInitialValues({'soundEnabled': false});
+    final container = ProviderContainer(
+      overrides: [randomProvider.overrideWithValue(Random(1))],
+    );
+    addTearDown(container.dispose);
+    await tester.pumpWidget(UncontrolledProviderScope(
+      container: container,
+      child: const MaterialApp(home: Scaffold()),
+    ));
 
-**Правила-модификации** реализованы в `GameEngine._computeMove`:
-выход из дома → `progress = dice - 1` (первый шаг — на стартовую клетку); затем, пока целевая клетка занята своей фишкой, `target++`;
-`target >= 32` (фишка прошла почти полный круг до клетки перед своим стартом) → финиш в самую дальнюю свободную лунку; иначе фишка соперника на той же
-абсолютной клетке кольца отправляется домой.
+    final ctrl = container.read(gameControllerProvider.notifier);
+    ctrl.start(const [
+      PlayerConfig(color: PlayerColor.red, type: PlayerType.human, name: 'Я'),
+      PlayerConfig(color: PlayerColor.yellow, type: PlayerType.human, name: 'Друг'),
+    ], direction: MoveDirection.counterclockwise, lottery: false);
+    expect(container.read(gameControllerProvider)!.shownDice, isNull);
 
-**Бонусные клетки:** пятая клетка каждой стороны по ходу движения, считая от угловой
-(стартовой) клетки. Остановка на ней даёт дополнительный бросок, как после 6
-(`bonusOffsetFromCorner` в `constants.dart`, `bonusRingIndices` в `models.dart`).
+    ctrl.roll();
+    await tester.pump(const Duration(milliseconds: 900));
+    final rolled = container.read(gameControllerProvider)!;
+    expect(rolled.shownDice, isNotNull);
+    expect(rolled.game.phase, GamePhase.waitingForMove);
 
-**Жребий:** перед партией все бросают кубик, первым ходит выбросивший больше, при ничьей
-лидеры перебрасывают (настройка «Жребий перед игрой», по умолчанию включена).
+    // Ход любой фишкой: выбор + подтверждение.
+    final piece = rolled.legalMoves.first.piece;
+    ctrl.tapPiece(piece);
+    ctrl.tapPiece(piece);
+    await tester.pump(const Duration(seconds: 3));
 
-**Боты** на каждом ходу перемешивают стратегии (сбить соперника, финиш, бонус, выход из дома,
-самая дальняя или отстающая фишка, любой ход) и берут первую подходящую.
+    final after = container.read(gameControllerProvider)!;
+    expect(after.game.phase, GamePhase.waitingForRoll);
+    expect(after.shownDice, isNull);
+    ctrl.stop();
+  });
 
-**Состав игроков:** 2 — красный и жёлтый (напротив друг друга), 3 — красный, синий, жёлтый,
-4 — все.
+  testWidgets('отмена последнего хода: фишка возвращается, бросок тот же, только один раз', (tester) async {
+    SharedPreferences.setMockInitialValues({'soundEnabled': false, 'vibrationEnabled': false});
+    final container = ProviderContainer(
+      overrides: [randomProvider.overrideWithValue(Random(5))],
+    );
+    addTearDown(container.dispose);
+    await tester.pumpWidget(UncontrolledProviderScope(
+      container: container,
+      child: const MaterialApp(home: Scaffold()),
+    ));
 
-**Направление хода** задаётся в настройках, по умолчанию — против часовой стрелки; применяется
-к новой партии. Дома и стартовые клетки не меняются: меняется сторона обхода, рукав креста,
-ведущий в финиш (против часовой красный финиширует в верхнем рукаве, по часовой — в левом),
-и очерёдность игроков (против часовой: красный → зелёный → жёлтый → синий).
+    final ctrl = container.read(gameControllerProvider.notifier);
+    ctrl.start(const [
+      PlayerConfig(color: PlayerColor.red, type: PlayerType.human, name: 'Сергей', avatar: '🦊'),
+      PlayerConfig(color: PlayerColor.yellow, type: PlayerType.bot, name: 'Бот'),
+    ], lottery: false);
+    expect(container.read(gameControllerProvider)!.canUndo, isFalse);
+    expect(container.read(gameControllerProvider)!.game.players.first.avatar, '🦊');
+
+    ctrl.roll();
+    await tester.pump(const Duration(seconds: 1));
+    final before = container.read(gameControllerProvider)!;
+    final dice = before.shownDice;
+    final piece = before.legalMoves.first.piece;
+    ctrl.tapPiece(piece);
+    ctrl.tapPiece(piece);
+    // Ход человека и ответ бота.
+    await tester.pump(const Duration(seconds: 2));
+    expect(container.read(gameControllerProvider)!.game.pieceOf(piece).progress, isNot(homeProgress));
+
+    // Ждём, пока бот не будет в анимации, и отменяем.
+    for (var i = 0; i < 50 && !container.read(gameControllerProvider)!.canUndo; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    ctrl.undo();
+    final after = container.read(gameControllerProvider)!;
+    expect(after.game.currentPlayer.color, PlayerColor.red);
+    expect(after.game.phase, GamePhase.waitingForMove);
+    expect(after.shownDice, dice);
+    expect(after.game.pieceOf(piece).progress, homeProgress);
+    expect(after.legalMoves, isNotEmpty);
+    expect(after.canUndo, isFalse, reason: 'отменить можно только один ход');
+
+    // Бот после отмены не ходит сам: ход за человеком.
+    await tester.pump(const Duration(seconds: 3));
+    expect(container.read(gameControllerProvider)!.game.phase, GamePhase.waitingForMove);
+    ctrl.stop();
+  });
+
+  testWidgets('жребий: все бросают, первым ходит выбросивший больше, ничья — переброс', (tester) async {
+    SharedPreferences.setMockInitialValues({'soundEnabled': false, 'vibrationEnabled': false});
+    // Броски: красный 4, жёлтый 4 (ничья) → переброс: красный 2, жёлтый 5 → первым ходит жёлтый.
+    final container = ProviderContainer(
+      overrides: [randomProvider.overrideWithValue(_ScriptedRandom([3, 3, 1, 4]))],
+    );
+    addTearDown(container.dispose);
+    await tester.pumpWidget(UncontrolledProviderScope(
+      container: container,
+      child: const MaterialApp(home: Scaffold()),
+    ));
+
+    final ctrl = container.read(gameControllerProvider.notifier);
+    ctrl.start(const [
+      PlayerConfig(color: PlayerColor.red, type: PlayerType.human, name: 'Аня'),
+      PlayerConfig(color: PlayerColor.yellow, type: PlayerType.human, name: 'Боря'),
+    ], direction: MoveDirection.counterclockwise, lottery: true);
+    GameViewState view() => container.read(gameControllerProvider)!;
+    expect(view().lottery, isNotNull);
+
+    Future<void> rollOnce() async {
+      ctrl.roll();
+      await tester.pump(diceRollDuration + const Duration(milliseconds: 50));
+      await tester.pump(lotteryPause + const Duration(milliseconds: 50));
+    }
+
+    await rollOnce(); // красный 4
+    expect(view().game.currentPlayer.color, PlayerColor.yellow);
+    await rollOnce(); // жёлтый 4 — ничья
+    expect(view().lottery!.contenders, [PlayerColor.red, PlayerColor.yellow]);
+    expect(view().lottery!.rolls, isEmpty);
+    expect(view().notice, contains('Ничья'));
+    await rollOnce(); // красный 2
+    await rollOnce(); // жёлтый 5 — победа в жребии
+
+    expect(view().lottery, isNull);
+    expect(view().game.currentPlayer.color, PlayerColor.yellow);
+    expect(view().game.phase, GamePhase.waitingForRoll);
+    expect(view().notice, 'Первым ходит Боря');
+    ctrl.stop();
+  });
+}
+
+/// Random с заранее заданной последовательностью nextInt (для бросков: значение + 1).
+class _ScriptedRandom implements Random {
+  _ScriptedRandom(this._values);
+  final List<int> _values;
+  int _i = 0;
+
+  @override
+  int nextInt(int max) => _values[_i++ % _values.length] % max;
+
+  @override
+  bool nextBool() => false;
+
+  @override
+  double nextDouble() => 0;
+}
