@@ -67,15 +67,6 @@ class BoardPainter extends CustomPainter {
       final zone = RRect.fromRectAndRadius(r, Radius.circular(cell * 0.4));
       final active = c == activePlayer;
       canvas.drawRRect(zone, Paint()..color = c.color.withValues(alpha: active ? 0.45 : 0.18));
-      if (active) {
-        canvas.drawRRect(
-          zone,
-          Paint()
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = cell * 0.08
-            ..color = c.color,
-        );
-      }
     }
 
     // Клетки кольца; бонусные — как обычные, только с бледной иконкой.
@@ -181,9 +172,9 @@ class BoardPainter extends CustomPainter {
   }
 
   /// Ход игрока: путь его фишек от старта до конца финиша. Каждая клетка пути обведена
-  /// цветом игрока, а через центры клеток идёт линия того же цвета, которая заходит
-  /// в финиш и заканчивается стрелкой на последней финишной клетке. Толщина — как у
-  /// обычной рамки клетки, цвет приглушённый.
+  /// цветом игрока, а в промежутках между соседними клетками пути боковые грани
+  /// продолжены линиями — получается коридор, внутри клеток линий нет. Толщина — как
+  /// у обычной рамки клетки, цвет приглушённый.
   void _drawActivePath(
     Canvas canvas,
     PlayerColor c,
@@ -196,27 +187,35 @@ class BoardPainter extends CustomPainter {
     final paint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = max(1, cell * 0.03)
-      ..strokeJoin = StrokeJoin.round
       ..strokeCap = StrokeCap.round
       ..color = c.color.withValues(alpha: 0.6);
     for (final g in cells) {
       canvas.drawRRect(cellShape(g), paint);
     }
 
-    final centers = [for (final g in cells) cellShape(g).center];
-    final line = Path()..moveTo(centers.first.dx, centers.first.dy);
-    for (final p in centers.skip(1)) {
-      line.lineTo(p.dx, p.dy);
+    // Связки между соседними клетками: от конца прямого участка боковой грани одной
+    // клетки до начала прямого участка у следующей (скругления углов не мешают).
+    for (var i = 0; i + 1 < cells.length; i++) {
+      final a = cellShape(cells[i]);
+      final b = cellShape(cells[i + 1]);
+      final dr = cells[i + 1].row - cells[i].row;
+      final dc = cells[i + 1].col - cells[i].col;
+      final ra = a.tlRadiusX;
+      final rb = b.tlRadiusX;
+      if (dc == 0) {
+        // Соседи по вертикали: соединяются левые и правые грани.
+        final ya = dr > 0 ? a.bottom - ra : a.top + ra;
+        final yb = dr > 0 ? b.top + rb : b.bottom - rb;
+        canvas.drawLine(Offset(a.left, ya), Offset(b.left, yb), paint);
+        canvas.drawLine(Offset(a.right, ya), Offset(b.right, yb), paint);
+      } else {
+        // Соседи по горизонтали: соединяются верхние и нижние грани.
+        final xa = dc > 0 ? a.right - ra : a.left + ra;
+        final xb = dc > 0 ? b.left + rb : b.right - rb;
+        canvas.drawLine(Offset(xa, a.top), Offset(xb, b.top), paint);
+        canvas.drawLine(Offset(xa, a.bottom), Offset(xb, b.bottom), paint);
+      }
     }
-    canvas.drawPath(line, paint);
-    final last = centers.last;
-    _drawArrow(
-      canvas,
-      last,
-      last - centers[centers.length - 2],
-      cell * 0.22,
-      Paint()..color = paint.color,
-    );
   }
 
   /// Эмодзи по центру точки [c].
