@@ -156,25 +156,15 @@ class BoardPainter extends CustomPainter {
     }
   }
 
-  /// Лунка-углубление: заливка плюс «внутренняя тень» радиальным градиентом.
+  /// Лунка: ровный круг без тени.
   void _drawHole(Canvas canvas, Offset c, double radius, Color fill) {
     canvas.drawCircle(c, radius, Paint()..color = fill);
-    canvas.drawCircle(
-      c,
-      radius,
-      Paint()
-        ..shader = RadialGradient(
-          center: const Alignment(0.25, 0.3),
-          colors: [Colors.transparent, Colors.black.withValues(alpha: 0.28)],
-          stops: const [0.55, 1.0],
-        ).createShader(Rect.fromCircle(center: c, radius: radius)),
-    );
   }
 
-  /// Ход игрока: путь его фишек от старта до конца финиша. Каждая клетка пути обведена
-  /// цветом игрока, а в промежутках между соседними клетками пути боковые грани
-  /// продолжены линиями — получается коридор, внутри клеток линий нет. Толщина — как
-  /// у обычной рамки клетки, цвет приглушённый.
+  /// Ход игрока: путь его фишек от старта до конца финиша — как бусы. Каждая клетка
+  /// пути обведена цветом игрока, а середины обращённых друг к другу граней соседних
+  /// клеток соединены короткой линией. Толщина — как у обычной рамки клетки, цвет
+  /// приглушённый.
   void _drawActivePath(
     Canvas canvas,
     PlayerColor c,
@@ -193,28 +183,17 @@ class BoardPainter extends CustomPainter {
       canvas.drawRRect(cellShape(g), paint);
     }
 
-    // Связки между соседними клетками: от конца прямого участка боковой грани одной
-    // клетки до начала прямого участка у следующей (скругления углов не мешают).
+    // Середина грани [r], обращённой в сторону (dr, dc).
+    Offset edgeMid(Rect r, int dr, int dc) =>
+        r.center + Offset(dc * r.width / 2, dr * r.height / 2);
     for (var i = 0; i + 1 < cells.length; i++) {
-      final a = cellShape(cells[i]);
-      final b = cellShape(cells[i + 1]);
       final dr = cells[i + 1].row - cells[i].row;
       final dc = cells[i + 1].col - cells[i].col;
-      final ra = a.tlRadiusX;
-      final rb = b.tlRadiusX;
-      if (dc == 0) {
-        // Соседи по вертикали: соединяются левые и правые грани.
-        final ya = dr > 0 ? a.bottom - ra : a.top + ra;
-        final yb = dr > 0 ? b.top + rb : b.bottom - rb;
-        canvas.drawLine(Offset(a.left, ya), Offset(b.left, yb), paint);
-        canvas.drawLine(Offset(a.right, ya), Offset(b.right, yb), paint);
-      } else {
-        // Соседи по горизонтали: соединяются верхние и нижние грани.
-        final xa = dc > 0 ? a.right - ra : a.left + ra;
-        final xb = dc > 0 ? b.left + rb : b.right - rb;
-        canvas.drawLine(Offset(xa, a.top), Offset(xb, b.top), paint);
-        canvas.drawLine(Offset(xa, a.bottom), Offset(xb, b.bottom), paint);
-      }
+      canvas.drawLine(
+        edgeMid(cellShape(cells[i]).outerRect, dr, dc),
+        edgeMid(cellShape(cells[i + 1]).outerRect, -dr, -dc),
+        paint,
+      );
     }
   }
 
