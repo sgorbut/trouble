@@ -46,9 +46,7 @@ class Bot {
 
   static Move? chooseMove(List<Move> moves, {Random? random}) {
     if (moves.isEmpty) return null;
-    final order = random == null
-        ? _priority
-        : ([...BotStrategy.values]..shuffle(random));
+    final order = random == null ? _priority : ([...BotStrategy.values]..shuffle(random));
     for (final strategy in order) {
       final move = _pick(strategy, moves, random);
       if (move != null) return move;
@@ -67,11 +65,9 @@ class Bot {
       BotStrategy.leaveHome => farthest(moves.where((m) => m.leavesHome)),
       BotStrategy.farthest => farthest(moves),
       BotStrategy.nearest => () {
-        final onRing = moves.where((m) => !m.leavesHome).toList();
-        return onRing.isEmpty
-            ? null
-            : onRing.reduce((a, b) => b.from < a.from ? b : a);
-      }(),
+          final onRing = moves.where((m) => !m.leavesHome).toList();
+          return onRing.isEmpty ? null : onRing.reduce((a, b) => b.from < a.from ? b : a);
+        }(),
       BotStrategy.any => moves[(random ?? Random()).nextInt(moves.length)],
     };
   }
