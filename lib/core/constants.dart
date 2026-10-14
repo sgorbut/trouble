@@ -32,5 +32,6 @@ const Duration diceRollDuration = Duration(milliseconds: 800);
 const Duration stepDuration = Duration(milliseconds: 150);
 const Duration captureDuration = Duration(milliseconds: 350);
 const Duration noMovesPause = Duration(milliseconds: 900);
+const Duration lotteryPause = Duration(milliseconds: 1100);
 const int botDelayMinMs = 600;
 const int botDelayMaxMs = 1000;

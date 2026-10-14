@@ -44,8 +44,14 @@ class _GameScreenState extends ConsumerState<GameScreen> {
         actionsAlignment: MainAxisAlignment.center,
         actionsOverflowDirection: VerticalDirection.down,
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, 'menu'), child: const Text('В меню')),
-          TextButton(onPressed: () => Navigator.pop(context, 'restart'), child: const Text('Перезапустить')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, 'menu'),
+            child: const Text('В меню'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, 'restart'),
+            child: const Text('Перезапустить'),
+          ),
           FilledButton(
             style: FilledButton.styleFrom(minimumSize: const Size(120, 44)),
             onPressed: () => Navigator.pop(context, 'resume'),
@@ -67,20 +73,25 @@ class _GameScreenState extends ConsumerState<GameScreen> {
 
   @override
   Widget build(BuildContext context) {
-    ref.listen(gameControllerProvider.select((s) => s?.game.winner), (prev, winner) {
+    ref.listen(gameControllerProvider.select((s) => s?.game.winner), (
+      prev,
+      winner,
+    ) {
       if (winner == null || _navigatedToWin) return;
       _navigatedToWin = true;
       final game = ref.read(gameControllerProvider)!.game;
       final player = game.playerOf(winner);
       Future<void>.delayed(const Duration(milliseconds: 1100), () {
         if (!context.mounted) return;
-        Navigator.of(context).pushReplacement(MaterialPageRoute<void>(
-          builder: (_) => WinScreen(
-            winnerName: player.name,
-            winnerColor: winner,
-            winnerAvatar: player.avatar,
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute<void>(
+            builder: (_) => WinScreen(
+              winnerName: player.name,
+              winnerColor: winner,
+              winnerAvatar: player.avatar,
+            ),
           ),
-        ));
+        );
       });
     });
 
@@ -111,40 +122,59 @@ class _GameScreenState extends ConsumerState<GameScreen> {
           ],
         ),
         body: SafeArea(
-          child: LayoutBuilder(builder: (context, c) {
-            final landscape = c.maxWidth > c.maxHeight;
-            const pad = 12.0;
-            if (landscape) {
-              final panelWidth = min(280.0, c.maxWidth * 0.35);
-              final side = min(c.maxHeight, c.maxWidth - panelWidth) - pad * 2;
-              return Row(
+          child: LayoutBuilder(
+            builder: (context, c) {
+              final landscape = c.maxWidth > c.maxHeight;
+              const pad = 12.0;
+              if (landscape) {
+                final panelWidth = min(280.0, c.maxWidth * 0.35);
+                final side =
+                    min(c.maxHeight, c.maxWidth - panelWidth) - pad * 2;
+                return Row(
+                  children: [
+                    Expanded(
+                      child: Center(child: BoardView(side: side)),
+                    ),
+                    // Панель игрока и счёта отделена от поля полосой.
+                    Container(
+                      width: panelWidth,
+                      decoration: const BoxDecoration(
+                        border: Border(
+                          left: BorderSide(color: Colors.black12, width: 2),
+                        ),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(pad),
+                        child: _ControlPanel(view: view, vertical: true),
+                      ),
+                    ),
+                  ],
+                );
+              }
+              const panelHeight = 124.0;
+              final side = min(c.maxWidth, c.maxHeight - panelHeight) - pad * 2;
+              return Column(
                 children: [
-                  Expanded(child: Center(child: BoardView(side: side))),
-                  SizedBox(
-                    width: panelWidth,
+                  Expanded(
+                    child: Center(child: BoardView(side: side)),
+                  ),
+                  // Панель игрока и счёта отделена от поля полосой.
+                  Container(
+                    height: panelHeight,
+                    decoration: const BoxDecoration(
+                      border: Border(
+                        top: BorderSide(color: Colors.black12, width: 2),
+                      ),
+                    ),
                     child: Padding(
                       padding: const EdgeInsets.all(pad),
-                      child: _ControlPanel(view: view, vertical: true),
+                      child: _ControlPanel(view: view, vertical: false),
                     ),
                   ),
                 ],
               );
-            }
-            const panelHeight = 110.0;
-            final side = min(c.maxWidth, c.maxHeight - panelHeight) - pad * 2;
-            return Column(
-              children: [
-                Expanded(child: Center(child: BoardView(side: side))),
-                SizedBox(
-                  height: panelHeight,
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(pad, 0, pad, pad),
-                    child: _ControlPanel(view: view, vertical: false),
-                  ),
-                ),
-              ],
-            );
-          }),
+            },
+          ),
         ),
       ),
     );
@@ -164,8 +194,12 @@ class _ControlPanel extends StatelessWidget {
     if (view.notice != null) return view.notice!;
     if (game.phase == GamePhase.finished) return 'Победа!';
     if (view.rolling) return 'Бросок…';
+    if (view.lottery != null) {
+      return player.isBot ? 'Бот бросает жребий…' : 'Жребий: бросьте кубик';
+    }
     if (player.isBot) {
-      return game.phase == GamePhase.waitingForMove || game.phase == GamePhase.animating
+      return game.phase == GamePhase.waitingForMove ||
+              game.phase == GamePhase.animating
           ? 'Бот ходит…'
           : 'Бот думает…';
     }
@@ -193,7 +227,9 @@ class _ControlPanel extends StatelessWidget {
       decoration: BoxDecoration(
         color: color.color,
         borderRadius: BorderRadius.circular(14),
-        boxShadow: [BoxShadow(color: color.color.withValues(alpha: 0.4), blurRadius: 10)],
+        boxShadow: [
+          BoxShadow(color: color.color.withValues(alpha: 0.4), blurRadius: 10),
+        ],
       ),
       child: Row(
         children: [
@@ -210,17 +246,28 @@ class _ControlPanel extends StatelessWidget {
                       child: Text(
                         player.name,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(color: color.onColor, fontWeight: FontWeight.bold, fontSize: 18),
+                        style: TextStyle(
+                          color: color.onColor,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
                       ),
                     ),
                     if (player.isBot) ...[
                       const SizedBox(width: 6),
-                      Icon(Icons.smart_toy_outlined, color: color.onColor, size: 18),
+                      Icon(
+                        Icons.smart_toy_outlined,
+                        color: color.onColor,
+                        size: 18,
+                      ),
                     ],
                   ],
                 ),
                 const SizedBox(height: 2),
-                Text(_hint(), style: TextStyle(color: color.onColor, fontSize: 14)),
+                Text(
+                  _hint(),
+                  style: TextStyle(color: color.onColor, fontSize: 14),
+                ),
               ],
             ),
           ),
@@ -233,11 +280,7 @@ class _ControlPanel extends StatelessWidget {
     if (vertical) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          indicator,
-          const Spacer(),
-          scores,
-        ],
+        children: [indicator, const Spacer(), scores],
       );
     }
     return Row(
@@ -285,8 +328,18 @@ class _Scores extends StatelessWidget {
                 const SizedBox(width: 6),
               ],
               Text(
-                '${p.pieces.where((x) => x.isFinished).length}/${p.pieces.length}',
-                style: const TextStyle(fontWeight: FontWeight.w600, fontFeatures: [FontFeature.tabularFigures()]),
+                // Во время жребия — выпавшее значение, иначе — сколько фишек в финише.
+                view.lottery != null
+                    ? (view.lottery!.rolls[p.color] != null
+                          ? '🎲 ${view.lottery!.rolls[p.color]}'
+                          : view.lottery!.contenders.contains(p.color)
+                          ? '🎲 …'
+                          : '—')
+                    : '${p.pieces.where((x) => x.isFinished).length}/${p.pieces.length}',
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontFeatures: [FontFeature.tabularFigures()],
+                ),
               ),
             ],
           ),
@@ -297,22 +350,32 @@ class _Scores extends StatelessWidget {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          for (final t in tiles) Padding(padding: const EdgeInsets.only(bottom: 6), child: t),
+          for (final t in tiles)
+            Padding(padding: const EdgeInsets.only(bottom: 6), child: t),
         ],
       );
     }
     // Сетка 2×2 на месте прежнего кубика.
     final rows = <Widget>[];
     for (var i = 0; i < tiles.length; i += 2) {
-      rows.add(Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          tiles[i],
-          if (i + 1 < tiles.length) ...[const SizedBox(width: 6), tiles[i + 1]],
-        ],
-      ));
+      rows.add(
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            tiles[i],
+            if (i + 1 < tiles.length) ...[
+              const SizedBox(width: 6),
+              tiles[i + 1],
+            ],
+          ],
+        ),
+      );
       if (i + 2 < tiles.length) rows.add(const SizedBox(height: 6));
     }
-    return Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.end, children: rows);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: rows,
+    );
   }
 }

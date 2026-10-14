@@ -23,11 +23,14 @@ GameState makeState({
   MoveDirection direction = cw,
 }) {
   Player p(PlayerColor c, List<int> pos) => Player(
-        color: c,
-        type: PlayerType.human,
-        name: c.displayName,
-        pieces: [for (var i = 0; i < pos.length; i++) Piece(owner: c, id: i, progress: pos[i])],
-      );
+    color: c,
+    type: PlayerType.human,
+    name: c.displayName,
+    pieces: [
+      for (var i = 0; i < pos.length; i++)
+        Piece(owner: c, id: i, progress: pos[i]),
+    ],
+  );
   return GameState(
     players: [p(PlayerColor.red, red), p(PlayerColor.yellow, yellow)],
     currentPlayerIndex: current,
@@ -40,9 +43,11 @@ int progressAt(PlayerColor c, int index, [MoveDirection d = cw]) =>
     ((index - c.startIndex) * d.sign) % ringLength;
 
 /// Абсолютная клетка красной фишки с данным progress.
-int redCell(int progress, [MoveDirection d = cw]) => ringIndexFor(PlayerColor.red, progress, d);
+int redCell(int progress, [MoveDirection d = cw]) =>
+    ringIndexFor(PlayerColor.red, progress, d);
 
-Move moveFor(List<Move> moves, int pieceId) => moves.firstWhere((m) => m.piece.id == pieceId);
+Move moveFor(List<Move> moves, int pieceId) =>
+    moves.firstWhere((m) => m.piece.id == pieceId);
 
 void main() {
   const yellow = PlayerColor.yellow;
@@ -57,23 +62,32 @@ void main() {
 
   group('выход из дома', () {
     for (var dice = 1; dice <= 6; dice++) {
-      test('при броске $dice фишка выходит и проходит $dice шаг(ов): progress ${dice - 1}', () {
-        final s = makeState();
-        final moves = GameEngine.getLegalMoves(s, dice);
-        expect(moves, hasLength(piecesPerPlayer));
-        expect(moves.every((m) => m.leavesHome && m.to == dice - 1), isTrue);
-      });
+      test(
+        'при броске $dice фишка выходит и проходит $dice шаг(ов): progress ${dice - 1}',
+        () {
+          final s = makeState();
+          final moves = GameEngine.getLegalMoves(s, dice);
+          expect(moves, hasLength(piecesPerPlayer));
+          expect(moves.every((m) => m.leavesHome && m.to == dice - 1), isTrue);
+        },
+      );
     }
 
-    test('при 1 фишка встаёт на старт; старт занят своей — на следующую клетку', () {
-      final s = makeState(red: [0, -1, -1]);
-      expect(moveFor(GameEngine.getLegalMoves(s, 1), 1).to, 1);
-    });
+    test(
+      'при 1 фишка встаёт на старт; старт занят своей — на следующую клетку',
+      () {
+        final s = makeState(red: [0, -1, -1]);
+        expect(moveFor(GameEngine.getLegalMoves(s, 1), 1).to, 1);
+      },
+    );
 
-    test('целевая клетка выхода и следующие заняты своими — цепочка сдвигов', () {
-      final s = makeState(red: [2, 3, -1]);
-      expect(moveFor(GameEngine.getLegalMoves(s, 3), 2).to, 4);
-    });
+    test(
+      'целевая клетка выхода и следующие заняты своими — цепочка сдвигов',
+      () {
+        final s = makeState(red: [2, 3, -1]);
+        expect(moveFor(GameEngine.getLegalMoves(s, 3), 2).to, 4);
+      },
+    );
 
     test('перепрыгивание через фишку на старте при выходе её не сбивает', () {
       final s = makeState(yellow: [progressAt(yellow, redCell(0)), -1, -1]);
@@ -82,15 +96,21 @@ void main() {
       expect(m.isCapture, isFalse);
     });
 
-    test('выход на старт (бросок 1), занятый чужой фишкой, — она сбрасывается', () {
-      final s = makeState(yellow: [progressAt(yellow, redCell(0)), -1, -1]);
-      final m = moveFor(GameEngine.getLegalMoves(s, 1), 0);
-      expect(m.to, 0);
-      expect(m.captured, const PieceRef(PlayerColor.yellow, 0));
-      final next = GameEngine.applyMove(GameEngine.applyRoll(s, 1), m);
-      expect(next.playerOf(PlayerColor.yellow).pieces[0].progress, homeProgress);
-      expect(next.playerOf(PlayerColor.red).pieces[0].progress, 0);
-    });
+    test(
+      'выход на старт (бросок 1), занятый чужой фишкой, — она сбрасывается',
+      () {
+        final s = makeState(yellow: [progressAt(yellow, redCell(0)), -1, -1]);
+        final m = moveFor(GameEngine.getLegalMoves(s, 1), 0);
+        expect(m.to, 0);
+        expect(m.captured, const PieceRef(PlayerColor.yellow, 0));
+        final next = GameEngine.applyMove(GameEngine.applyRoll(s, 1), m);
+        expect(
+          next.playerOf(PlayerColor.yellow).pieces[0].progress,
+          homeProgress,
+        );
+        expect(next.playerOf(PlayerColor.red).pieces[0].progress, 0);
+      },
+    );
 
     test('выход с приземлением на чужую фишку сбрасывает её', () {
       final s = makeState(yellow: [progressAt(yellow, redCell(4)), -1, -1]);
@@ -102,7 +122,10 @@ void main() {
 
   group('движение по кольцу', () {
     test('сброс чужой фишки при приземлении', () {
-      final s = makeState(red: [5, -1, -1], yellow: [progressAt(yellow, redCell(8)), -1, -1]);
+      final s = makeState(
+        red: [5, -1, -1],
+        yellow: [progressAt(yellow, redCell(8)), -1, -1],
+      );
       final m = moveFor(GameEngine.getLegalMoves(s, 3), 0);
       expect(m.to, 8);
       expect(m.isCapture, isTrue);
@@ -111,7 +134,10 @@ void main() {
     });
 
     test('перепрыгивание через фишки не мешает ходу и не сбивает их', () {
-      final s = makeState(red: [5, 7, -1], yellow: [progressAt(yellow, redCell(6)), -1, -1]);
+      final s = makeState(
+        red: [5, 7, -1],
+        yellow: [progressAt(yellow, redCell(6)), -1, -1],
+      );
       final m = moveFor(GameEngine.getLegalMoves(s, 4), 0);
       expect(m.to, 9);
       expect(m.isCapture, isFalse);
@@ -127,12 +153,15 @@ void main() {
       expect(moveFor(GameEngine.getLegalMoves(s, 3), 0).to, 10);
     });
 
-    test('сдвиг за своей фишкой через переход последнего индекса кольца к 0', () {
-      // Жёлтый: progress 15 — индекс 31, progress 16 — индекс 0.
-      final s = makeState(yellow: [13, 15, -1], current: 1);
-      expect(ringIndexFor(yellow, 15, cw), ringLength - 1);
-      expect(moveFor(GameEngine.getLegalMoves(s, 2), 0).to, 16);
-    });
+    test(
+      'сдвиг за своей фишкой через переход последнего индекса кольца к 0',
+      () {
+        // Жёлтый: progress 15 — индекс 31, progress 16 — индекс 0.
+        final s = makeState(yellow: [13, 15, -1], current: 1);
+        expect(ringIndexFor(yellow, 15, cw), ringLength - 1);
+        expect(moveFor(GameEngine.getLegalMoves(s, 2), 0).to, 16);
+      },
+    );
   });
 
   group('финиш', () {
@@ -181,7 +210,10 @@ void main() {
     test('после 6 — дополнительный бросок', () {
       final s = GameEngine.applyRoll(makeState(red: [5, -1, -1]), 6);
       expect(s.extraTurn, isTrue);
-      final next = GameEngine.applyMove(s, moveFor(GameEngine.getLegalMoves(s, 6), 0));
+      final next = GameEngine.applyMove(
+        s,
+        moveFor(GameEngine.getLegalMoves(s, 6), 0),
+      );
       expect(next.currentPlayer.color, PlayerColor.red);
       expect(next.phase, GamePhase.waitingForRoll);
       expect(next.extraTurn, isTrue);
@@ -189,7 +221,10 @@ void main() {
 
     test('обычный бросок — ход переходит дальше', () {
       final s = GameEngine.applyRoll(makeState(red: [5, -1, -1]), 3);
-      final next = GameEngine.applyMove(s, moveFor(GameEngine.getLegalMoves(s, 3), 0));
+      final next = GameEngine.applyMove(
+        s,
+        moveFor(GameEngine.getLegalMoves(s, 3), 0),
+      );
       expect(next.currentPlayer.color, PlayerColor.yellow);
       expect(next.diceValue, isNull);
     });
@@ -218,16 +253,28 @@ void main() {
 
   group('победа', () {
     test('последняя фишка в финише — победа', () {
-      final s = GameEngine.applyRoll(makeState(red: [fEnd, fEnd - 1, lastRing - 1]), 2);
-      final next = GameEngine.applyMove(s, moveFor(GameEngine.getLegalMoves(s, 2), 2));
+      final s = GameEngine.applyRoll(
+        makeState(red: [fEnd, fEnd - 1, lastRing - 1]),
+        2,
+      );
+      final next = GameEngine.applyMove(
+        s,
+        moveFor(GameEngine.getLegalMoves(s, 2), 2),
+      );
       expect(next.phase, GamePhase.finished);
       expect(next.winner, PlayerColor.red);
       expect(GameEngine.isFinished(next), isTrue);
     });
 
     test('до финиша всех фишек игра продолжается', () {
-      final s = GameEngine.applyRoll(makeState(red: [fEnd, 20, lastRing - 1]), 2);
-      final next = GameEngine.applyMove(s, moveFor(GameEngine.getLegalMoves(s, 2), 2));
+      final s = GameEngine.applyRoll(
+        makeState(red: [fEnd, 20, lastRing - 1]),
+        2,
+      );
+      final next = GameEngine.applyMove(
+        s,
+        moveFor(GameEngine.getLegalMoves(s, 2), 2),
+      );
       expect(next.winner, isNull);
       expect(GameEngine.isFinished(next), isFalse);
     });
@@ -235,7 +282,10 @@ void main() {
 
   group('бот', () {
     test('приоритет: сброс соперника', () {
-      final s = makeState(red: [5, 20, -1], yellow: [progressAt(yellow, redCell(8)), -1, -1]);
+      final s = makeState(
+        red: [5, 20, -1],
+        yellow: [progressAt(yellow, redCell(8)), -1, -1],
+      );
       expect(Bot.chooseMove(GameEngine.getLegalMoves(s, 3))!.isCapture, isTrue);
     });
 
@@ -246,7 +296,10 @@ void main() {
 
     test('приоритет: выход из дома перед обычным ходом', () {
       final s = makeState(red: [5, -1, -1]);
-      expect(Bot.chooseMove(GameEngine.getLegalMoves(s, 2))!.leavesHome, isTrue);
+      expect(
+        Bot.chooseMove(GameEngine.getLegalMoves(s, 2))!.leavesHome,
+        isTrue,
+      );
     });
 
     test('иначе — самая дальняя фишка', () {
@@ -268,7 +321,10 @@ void main() {
 
     for (final dir in MoveDirection.values) {
       test('остановка на бонусной клетке даёт ещё бросок (${dir.name})', () {
-        final s = GameEngine.applyRoll(makeState(red: [2, -1, -1], direction: dir), 3);
+        final s = GameEngine.applyRoll(
+          makeState(red: [2, -1, -1], direction: dir),
+          3,
+        );
         final m = moveFor(GameEngine.getLegalMoves(s, 3), 0);
         expect(m.to, bonusOffsetFromCorner);
         expect(m.bonus, isTrue);
@@ -283,12 +339,18 @@ void main() {
       final s = GameEngine.applyRoll(makeState(red: [3, -1, -1]), 4);
       final m = moveFor(GameEngine.getLegalMoves(s, 4), 0);
       expect(m.bonus, isFalse);
-      expect(GameEngine.applyMove(s, m).currentPlayer.color, PlayerColor.yellow);
+      expect(
+        GameEngine.applyMove(s, m).currentPlayer.color,
+        PlayerColor.yellow,
+      );
     });
 
     test('сброс чужой фишки на бонусной клетке — и сброс, и ещё бросок', () {
       final s = GameEngine.applyRoll(
-        makeState(red: [2, -1, -1], yellow: [progressAt(yellow, redCell(5)), -1, -1]),
+        makeState(
+          red: [2, -1, -1],
+          yellow: [progressAt(yellow, redCell(5)), -1, -1],
+        ),
         3,
       );
       final m = moveFor(GameEngine.getLegalMoves(s, 3), 0);
@@ -302,6 +364,22 @@ void main() {
     test('бот предпочитает бонусную клетку выходу из дома', () {
       final s = makeState(red: [2, -1, -1]);
       expect(Bot.chooseMove(GameEngine.getLegalMoves(s, 3))!.bonus, isTrue);
+    });
+  });
+
+  group('бот со случайной стратегией', () {
+    test('всегда выбирает допустимый ход и не всегда один и тот же', () {
+      final s = makeState(
+        red: [5, 20, -1],
+        yellow: [progressAt(yellow, redCell(8)), -1, -1],
+      );
+      final moves = GameEngine.getLegalMoves(s, 3);
+      final random = Random(7);
+      final chosen = {
+        for (var i = 0; i < 60; i++) Bot.chooseMove(moves, random: random)!,
+      };
+      expect(chosen.every(moves.contains), isTrue);
+      expect(chosen.length, greaterThan(1));
     });
   });
 
@@ -320,19 +398,31 @@ void main() {
         yellow: [progressAt(yellow, target, ccw), -1, -1],
         direction: ccw,
       );
-      expect(moveFor(GameEngine.getLegalMoves(s, 3), 0).captured, const PieceRef(PlayerColor.yellow, 0));
+      expect(
+        moveFor(GameEngine.getLegalMoves(s, 3), 0).captured,
+        const PieceRef(PlayerColor.yellow, 0),
+      );
     });
 
     test('выход на старт, занятый чужой фишкой', () {
-      final s = makeState(yellow: [progressAt(yellow, redCell(0, ccw), ccw), -1, -1], direction: ccw);
-      expect(moveFor(GameEngine.getLegalMoves(s, 1), 0).captured, const PieceRef(PlayerColor.yellow, 0));
+      final s = makeState(
+        yellow: [progressAt(yellow, redCell(0, ccw), ccw), -1, -1],
+        direction: ccw,
+      );
+      expect(
+        moveFor(GameEngine.getLegalMoves(s, 1), 0).captured,
+        const PieceRef(PlayerColor.yellow, 0),
+      );
     });
 
-    test('выход из дома против часовой: бросок 4 → три клетки после старта', () {
-      final s = makeState(direction: ccw);
-      final m = moveFor(GameEngine.getLegalMoves(s, 4), 0);
-      expect(redCell(m.to, ccw), ringLength - 3);
-    });
+    test(
+      'выход из дома против часовой: бросок 4 → три клетки после старта',
+      () {
+        final s = makeState(direction: ccw);
+        final m = moveFor(GameEngine.getLegalMoves(s, 4), 0);
+        expect(redCell(m.to, ccw), ringLength - 3);
+      },
+    );
 
     test('финиш работает так же', () {
       final s = makeState(red: [lastRing - 2, -1, -1], direction: ccw);
@@ -345,7 +435,10 @@ void main() {
           PlayerConfig(color: c, type: PlayerType.human, name: c.displayName),
       ], direction: ccw);
       expect(s.players.map((p) => p.color), [
-        PlayerColor.red, PlayerColor.green, PlayerColor.yellow, PlayerColor.blue,
+        PlayerColor.red,
+        PlayerColor.green,
+        PlayerColor.yellow,
+        PlayerColor.blue,
       ]);
     });
 
@@ -370,9 +463,14 @@ void main() {
         final dice = GameEngine.rollDice(random);
         s = GameEngine.applyRoll(s, dice);
         final moves = GameEngine.getLegalMoves(s, dice);
-        s = moves.isEmpty ? GameEngine.passTurn(s) : GameEngine.applyMove(s, Bot.chooseMove(moves)!);
+        s = moves.isEmpty
+            ? GameEngine.passTurn(s)
+            : GameEngine.applyMove(s, Bot.chooseMove(moves)!);
         // Инвариант: на одной клетке кольца не больше одной фишки.
-        final ring = s.allPieces.map((p) => p.ringIndex(dir)).whereType<int>().toList();
+        final ring = s.allPieces
+            .map((p) => p.ringIndex(dir))
+            .whereType<int>()
+            .toList();
         expect(ring.toSet().length, ring.length);
         turns++;
       }
