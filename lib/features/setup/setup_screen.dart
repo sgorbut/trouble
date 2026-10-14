@@ -65,7 +65,8 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
   void _recolor(_Slot slot, PlayerColor color) {
     final name = slot.name.text.trim();
     if (name == slot.color.displayName) slot.name.text = color.displayName;
-    if (slot.avatar == defaultAvatarFor(slot.color)) _setAvatar(slot, defaultAvatarFor(color));
+    if (slot.avatar == defaultAvatarFor(slot.color))
+      _setAvatar(slot, defaultAvatarFor(color));
     slot.color = color;
   }
 
@@ -73,7 +74,8 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
   /// меняется на имя нового.
   void _setAvatar(_Slot slot, String avatar) {
     final name = slot.name.text.trim();
-    if (name.isEmpty || name == avatarName(slot.avatar)) slot.name.text = avatarName(avatar);
+    if (name.isEmpty || name == avatarName(slot.avatar))
+      slot.name.text = avatarName(avatar);
     slot.avatar = avatar;
   }
 
@@ -224,7 +226,11 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
         runSpacing: 6,
         children: [
           // Имя по аватару, имя-цвет (только для своего цвета), затем общие имена.
-          for (final name in {avatarName(slot.avatar), c.displayName, ...quickNames}.where((n) => n.isNotEmpty))
+          for (final name in {
+            avatarName(slot.avatar),
+            c.displayName,
+            ...quickNames,
+          }.where((n) => n.isNotEmpty))
             ChoiceChip(
               label: Text(name),
               visualDensity: VisualDensity.compact,
@@ -442,12 +448,19 @@ class _CornerGlowPainter extends CustomPainter {
             ],
           ).createShader(Rect.fromCircle(center: center, radius: radius)),
       );
-      if (player != null) _paintPlayer(canvas, size, c, player.avatar, player.name);
+      if (player != null)
+        _paintPlayer(canvas, size, c, player.avatar, player.name);
     }
   }
 
   /// Аватар и под ним имя игрока у его угла.
-  void _paintPlayer(Canvas canvas, Size size, PlayerColor c, String avatar, String name) {
+  void _paintPlayer(
+    Canvas canvas,
+    Size size,
+    PlayerColor c,
+    String avatar,
+    String name,
+  ) {
     const margin = 14.0;
     const maxWidth = 120.0;
     final a = _corner(c);
@@ -478,7 +491,8 @@ class _CornerGlowPainter extends CustomPainter {
     final y = top ? margin : size.height - blockHeight - 24;
     double xFor(double w) => left ? margin : size.width - w - margin;
 
-    if (avatar.isNotEmpty) avatarTp.paint(canvas, Offset(xFor(avatarTp.width), y));
+    if (avatar.isNotEmpty)
+      avatarTp.paint(canvas, Offset(xFor(avatarTp.width), y));
     nameTp.paint(canvas, Offset(xFor(nameTp.width), y + avatarTp.height + 2));
   }
 
