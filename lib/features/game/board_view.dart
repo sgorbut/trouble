@@ -168,7 +168,9 @@ class _BoardViewState extends ConsumerState<BoardView> with TickerProviderStateM
   }) {
     final progress = view.display[r] ?? homeProgress;
     final pos = BoardGeometry.cellFor(r.owner, r.id, progress, view.game.direction);
-    final size = cell * 0.78;
+    // В финише клетки меньше (стоят внутри зоны дома) — фишка тоже меньше, чтобы не
+    // выходить за края клетки.
+    final size = cell * (progress >= finishStartProgress ? 0.6 : 0.78);
     final fast = view.fastPieces.contains(r);
     return AnimatedPositioned(
       key: ValueKey('piece-${r.owner.name}-${r.id}'),
