@@ -34,15 +34,28 @@ class SettingsScreen extends ConsumerWidget {
               SwitchListTile(
                 secondary: const Icon(Icons.fast_forward),
                 title: const Text('Автоход'),
-                subtitle: const Text('Если допустим только один ход, выполнять его автоматически'),
+                subtitle: const Text(
+                  'Если допустим только один ход, выполнять его автоматически',
+                ),
                 value: settings.autoMoveSingle,
                 onChanged: notifier.setAutoMove,
+              ),
+              SwitchListTile(
+                secondary: const Icon(Icons.casino_outlined),
+                title: const Text('Жребий перед игрой'),
+                subtitle: const Text(
+                  'Все бросают кубик, первым ходит выбросивший больше. При ничьей — переброс',
+                ),
+                value: settings.lotteryStart,
+                onChanged: notifier.setLottery,
               ),
               const Divider(),
               ListTile(
                 leading: const Icon(Icons.rotate_left),
                 title: const Text('Направление хода фишек'),
-                subtitle: const Text('Применяется к новой партии. Очерёдность игроков — в ту же сторону.'),
+                subtitle: const Text(
+                  'Применяется к новой партии. Очерёдность игроков — в ту же сторону.',
+                ),
               ),
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),

@@ -7,7 +7,8 @@ class Settings {
   const Settings({
     this.soundEnabled = true,
     this.vibrationEnabled = true,
-    this.autoMoveSingle = false,
+    this.autoMoveSingle = true,
+    this.lotteryStart = true,
     this.direction = MoveDirection.counterclockwise,
   });
 
@@ -19,6 +20,9 @@ class Settings {
   /// Если допустим ровно один ход — выполнять его автоматически.
   final bool autoMoveSingle;
 
+  /// Кто ходит первым, решает жребий: все бросают кубик, у кого больше — тот первый.
+  final bool lotteryStart;
+
   /// Направление хода фишек; применяется к новым партиям.
   final MoveDirection direction;
 
@@ -26,20 +30,22 @@ class Settings {
     bool? soundEnabled,
     bool? vibrationEnabled,
     bool? autoMoveSingle,
+    bool? lotteryStart,
     MoveDirection? direction,
-  }) =>
-      Settings(
-        soundEnabled: soundEnabled ?? this.soundEnabled,
-        vibrationEnabled: vibrationEnabled ?? this.vibrationEnabled,
-        autoMoveSingle: autoMoveSingle ?? this.autoMoveSingle,
-        direction: direction ?? this.direction,
-      );
+  }) => Settings(
+    soundEnabled: soundEnabled ?? this.soundEnabled,
+    vibrationEnabled: vibrationEnabled ?? this.vibrationEnabled,
+    autoMoveSingle: autoMoveSingle ?? this.autoMoveSingle,
+    lotteryStart: lotteryStart ?? this.lotteryStart,
+    direction: direction ?? this.direction,
+  );
 }
 
 class SettingsNotifier extends Notifier<Settings> {
   static const _soundKey = 'soundEnabled';
   static const _vibrationKey = 'vibrationEnabled';
   static const _autoMoveKey = 'autoMoveSingle';
+  static const _lotteryKey = 'lotteryStart';
   static const _clockwiseKey = 'clockwise';
 
   @override
@@ -55,7 +61,8 @@ class SettingsNotifier extends Notifier<Settings> {
       state = Settings(
         soundEnabled: prefs.getBool(_soundKey) ?? true,
         vibrationEnabled: prefs.getBool(_vibrationKey) ?? true,
-        autoMoveSingle: prefs.getBool(_autoMoveKey) ?? false,
+        autoMoveSingle: prefs.getBool(_autoMoveKey) ?? true,
+        lotteryStart: prefs.getBool(_lotteryKey) ?? true,
         direction: (prefs.getBool(_clockwiseKey) ?? false)
             ? MoveDirection.clockwise
             : MoveDirection.counterclockwise,
@@ -80,6 +87,11 @@ class SettingsNotifier extends Notifier<Settings> {
     await _save(_autoMoveKey, value);
   }
 
+  Future<void> setLottery(bool value) async {
+    state = state.copyWith(lotteryStart: value);
+    await _save(_lotteryKey, value);
+  }
+
   Future<void> setDirection(MoveDirection value) async {
     state = state.copyWith(direction: value);
     await _save(_clockwiseKey, value == MoveDirection.clockwise);
@@ -93,4 +105,6 @@ class SettingsNotifier extends Notifier<Settings> {
   }
 }
 
-final settingsProvider = NotifierProvider<SettingsNotifier, Settings>(SettingsNotifier.new);
+final settingsProvider = NotifierProvider<SettingsNotifier, Settings>(
+  SettingsNotifier.new,
+);
