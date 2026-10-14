@@ -32,13 +32,14 @@ class Settings {
     bool? autoMoveSingle,
     bool? lotteryStart,
     MoveDirection? direction,
-  }) => Settings(
-    soundEnabled: soundEnabled ?? this.soundEnabled,
-    vibrationEnabled: vibrationEnabled ?? this.vibrationEnabled,
-    autoMoveSingle: autoMoveSingle ?? this.autoMoveSingle,
-    lotteryStart: lotteryStart ?? this.lotteryStart,
-    direction: direction ?? this.direction,
-  );
+  }) =>
+      Settings(
+        soundEnabled: soundEnabled ?? this.soundEnabled,
+        vibrationEnabled: vibrationEnabled ?? this.vibrationEnabled,
+        autoMoveSingle: autoMoveSingle ?? this.autoMoveSingle,
+        lotteryStart: lotteryStart ?? this.lotteryStart,
+        direction: direction ?? this.direction,
+      );
 }
 
 class SettingsNotifier extends Notifier<Settings> {
@@ -105,6 +106,4 @@ class SettingsNotifier extends Notifier<Settings> {
   }
 }
 
-final settingsProvider = NotifierProvider<SettingsNotifier, Settings>(
-  SettingsNotifier.new,
-);
+final settingsProvider = NotifierProvider<SettingsNotifier, Settings>(SettingsNotifier.new);
