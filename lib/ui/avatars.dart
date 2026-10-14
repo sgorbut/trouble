@@ -55,7 +55,7 @@ const Map<String, String> avatarNames = {
 String avatarName(String avatar) => avatarNames[avatar] ?? '';
 
 /// Имена для быстрого выбора на экране настройки партии.
-const List<String> quickNames = [];
+const List<String> quickNames = ['Сергей', 'Ирина', 'Лиза', 'Настя'];
 
 /// Аватар по умолчанию для цвета (у каждого цвета свой).
 String defaultAvatarFor(PlayerColor color) => switch (color) {
