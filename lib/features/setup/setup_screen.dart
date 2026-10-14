@@ -181,30 +181,46 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                 style: Theme.of(context).textTheme.titleMedium,
               ),
               const SizedBox(height: 12),
-              Wrap(
-                spacing: 10,
-                runSpacing: 10,
-                alignment: WrapAlignment.center,
-                children: [
-                  for (final a in presetAvatars)
-                    InkResponse(
-                      onTap: () => Navigator.pop(context, a),
-                      radius: 30,
-                      child: Container(
-                        padding: const EdgeInsets.all(2),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: slot.avatar == a
-                                ? c.dark
-                                : Colors.transparent,
-                            width: 3,
+              // Сетка 4 ряда × 5 аватаров; размер подстраивается под ширину экрана.
+              LayoutBuilder(
+                builder: (context, box) {
+                  const perRow = 5;
+                  const gap = 10.0;
+                  final size = min(52.0, (box.maxWidth - gap * (perRow - 1)) / perRow - 10);
+                  Widget item(String a) => InkResponse(
+                    onTap: () => Navigator.pop(context, a),
+                    radius: size / 2 + 6,
+                    child: Container(
+                      padding: const EdgeInsets.all(2),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: slot.avatar == a ? c.dark : Colors.transparent,
+                          width: 3,
+                        ),
+                      ),
+                      child: PlayerAvatar(color: c, avatar: a, size: size),
+                    ),
+                  );
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      for (var r = 0; r < presetAvatars.length; r += perRow)
+                        Padding(
+                          padding: EdgeInsets.only(top: r == 0 ? 0 : gap),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              for (var i = r; i < min(r + perRow, presetAvatars.length); i++) ...[
+                                if (i > r) const SizedBox(width: gap),
+                                item(presetAvatars[i]),
+                              ],
+                            ],
                           ),
                         ),
-                        child: PlayerAvatar(color: c, avatar: a, size: 52),
-                      ),
-                    ),
-                ],
+                    ],
+                  );
+                },
               ),
             ],
           ),
