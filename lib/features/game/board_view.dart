@@ -23,11 +23,14 @@ class BoardView extends ConsumerStatefulWidget {
 }
 
 class _BoardViewState extends ConsumerState<BoardView> with TickerProviderStateMixin {
-  late final AnimationController _pulse =
-      AnimationController(vsync: this, duration: const Duration(milliseconds: 900))..repeat();
-  late final AnimationController _bounce =
-      AnimationController(vsync: this, duration: const Duration(milliseconds: 700))
-        ..repeat(reverse: true);
+  late final AnimationController _pulse = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 900),
+  )..repeat();
+  late final AnimationController _bounce = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 700),
+  )..repeat(reverse: true);
 
   @override
   void dispose() {
@@ -49,17 +52,31 @@ class _BoardViewState extends ConsumerState<BoardView> with TickerProviderStateM
     final humanTurn = !game.currentPlayer.isBot;
 
     final movable = {for (final m in view.legalMoves) m.piece};
-    final canLeaveHome = view.legalMoves.any((m) => m.leavesHome);
     final selectedMove = view.selectedMove;
     final destCell = selectedMove == null
         ? null
         : BoardGeometry.cellFor(
-            selectedMove.piece.owner, selectedMove.piece.id, selectedMove.to, game.direction);
+            selectedMove.piece.owner,
+            selectedMove.piece.id,
+            selectedMove.to,
+            game.direction,
+          );
+    // Клетки, которые пройдёт выбранная фишка: из дома — со стартовой клетки.
+    final movePath = selectedMove == null
+        ? const <GridPos>[]
+        : [
+            for (var p = max(selectedMove.from + 1, 0); p <= selectedMove.to; p++)
+              BoardGeometry.cellFor(
+                selectedMove.piece.owner,
+                selectedMove.piece.id,
+                p,
+                game.direction,
+              ),
+          ];
 
     // Фишки: движущиеся/выбранные рисуются поверх остальных.
-    final refs = [
-      for (final p in game.allPieces) PieceRef(p.owner, p.id),
-    ]..sort((a, b) {
+    final refs = [for (final p in game.allPieces) PieceRef(p.owner, p.id)]
+      ..sort((a, b) {
         int rank(PieceRef r) => (movable.contains(r) ? 1 : 0) + (view.selected == r ? 2 : 0);
         return rank(a).compareTo(rank(b));
       });
@@ -78,8 +95,7 @@ class _BoardViewState extends ConsumerState<BoardView> with TickerProviderStateM
                   pulse: _pulse,
                   direction: game.direction,
                   activePlayer: game.phase == GamePhase.finished ? null : current,
-                  pulsingStart:
-                      game.phase == GamePhase.waitingForMove && canLeaveHome ? current : null,
+                  movePath: movePath,
                   destination: destCell,
                   destinationColor: current,
                 ),
@@ -224,7 +240,11 @@ class _Token extends StatelessWidget {
                 offset: const Offset(0, 2),
               ),
               if (highlighted)
-                BoxShadow(color: color.color.withValues(alpha: 0.85), blurRadius: 10, spreadRadius: 2),
+                BoxShadow(
+                  color: color.color.withValues(alpha: 0.85),
+                  blurRadius: 10,
+                  spreadRadius: 2,
+                ),
               if (flying) const BoxShadow(color: Colors.white, blurRadius: 12, spreadRadius: 3),
             ],
           ),

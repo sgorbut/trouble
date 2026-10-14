@@ -8,13 +8,13 @@ import '../../core/game/models.dart';
 import '../../ui/theme.dart';
 
 /// Рисует статичное поле: кольцо, дома, финиши, стартовые и бонусные клетки.
-/// Пульсация стартовой клетки и подсветка клетки назначения — по параметрам.
+/// Путь ходящего игрока, путь выбранной фишки и клетка назначения — по параметрам.
 class BoardPainter extends CustomPainter {
   BoardPainter({
     required this.pulse,
     required this.direction,
-    this.pulsingStart,
     this.activePlayer,
+    this.movePath = const [],
     this.destination,
     this.destinationColor,
   }) : super(repaint: pulse);
@@ -24,11 +24,12 @@ class BoardPainter extends CustomPainter {
   /// От направления зависит, какой рукав креста — финиш какого цвета.
   final MoveDirection direction;
 
-  /// Цвет, чья стартовая клетка сейчас пульсирует (можно вывести фишку).
-  final PlayerColor? pulsingStart;
-
-  /// Чей сейчас ход: его зона дома рисуется насыщеннее и с рамкой.
+  /// Чей сейчас ход: его зона дома рисуется насыщеннее и с рамкой, а путь фишек
+  /// от старта до финиша выделен гранями клеток.
   final PlayerColor? activePlayer;
+
+  /// Клетки, по которым пройдёт выбранная фишка (до клетки назначения включительно).
+  final List<GridPos> movePath;
   final GridPos? destination;
   final PlayerColor? destinationColor;
 
@@ -38,11 +39,11 @@ class BoardPainter extends CustomPainter {
     final cell = side / gridSize;
 
     Rect rectOf(GridPos p, [double inset = 0]) => Rect.fromLTWH(
-          p.col * cell + inset,
-          p.row * cell + inset,
-          cell - inset * 2,
-          cell - inset * 2,
-        );
+      p.col * cell + inset,
+      p.row * cell + inset,
+      cell - inset * 2,
+      cell - inset * 2,
+    );
 
     // Фон.
     canvas.drawRRect(
@@ -84,20 +85,22 @@ class BoardPainter extends CustomPainter {
         rr,
         isBonus
             ? (Paint()
-              ..style = PaintingStyle.stroke
-              ..strokeWidth = cell * 0.05
-              ..color = _bonusBorder)
+                ..style = PaintingStyle.stroke
+                ..strokeWidth = cell * 0.05
+                ..color = _bonusBorder)
             : border,
       );
-      if (isBonus) _drawEmoji(canvas, '🎁', r.center, cell * 0.5);
+      if (isBonus) _drawEmoji(canvas, '🎁', r.center, cell * 0.4);
     }
-
 
     // Финишные клетки.
     for (final c in PlayerColor.values) {
       final cells = BoardGeometry.finishCells(c, direction);
       for (var i = 0; i < cells.length; i++) {
-        final rr = RRect.fromRectAndRadius(rectOf(cells[i], cell * 0.06), Radius.circular(cell * 0.18));
+        final rr = RRect.fromRectAndRadius(
+          rectOf(cells[i], cell * 0.06),
+          Radius.circular(cell * 0.18),
+        );
         canvas.drawRRect(rr, Paint()..color = Color.lerp(c.light, c.color, i / 4)!);
         canvas.drawRRect(
           rr,
@@ -106,10 +109,14 @@ class BoardPainter extends CustomPainter {
             ..strokeWidth = max(1, cell * 0.03)
             ..color = c.dark.withValues(alpha: 0.5),
         );
-        _drawHole(canvas, rectOf(cells[i]).center, cell * 0.26, Colors.white.withValues(alpha: 0.5));
+        _drawHole(
+          canvas,
+          rectOf(cells[i]).center,
+          cell * 0.26,
+          Colors.white.withValues(alpha: 0.5),
+        );
       }
     }
-
 
     // Направление движения: стрелка на первой клетке после старта.
     for (final c in PlayerColor.values) {
@@ -130,27 +137,36 @@ class BoardPainter extends CustomPainter {
     for (final c in PlayerColor.values) {
       final r = rectOf(BoardGeometry.startCell(c), cell * 0.06);
       final rr = RRect.fromRectAndRadius(r, Radius.circular(cell * 0.18));
-      if (pulsingStart == c) {
-        final t = pulse.value;
-        canvas.drawRRect(
-          rr.inflate(cell * 0.04 + cell * 0.1 * t),
-          Paint()..color = c.color.withValues(alpha: 0.45 * (1 - t)),
-        );
-      }
       canvas.drawRRect(rr, Paint()..color = c.color.withValues(alpha: 0.4));
       canvas.drawRRect(rr, border);
     }
 
-    // Путь текущего игрока обведён по контуру — поверх клеток, под фишками.
     final player = activePlayer;
-    if (player != null) _drawActivePathOutline(canvas, player, cell);
+
+    // Путь выбранной фишки до места хода — неяркая заливка цветом игрока.
+    final pathColor = destinationColor ?? player;
+    if (pathColor != null) {
+      for (final g in movePath) {
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(rectOf(g, cell * 0.06), Radius.circular(cell * 0.18)),
+          Paint()..color = pathColor.color.withValues(alpha: 0.22),
+        );
+      }
+    }
+
+    // Путь текущего игрока: грани клеток цветом игрока — поверх клеток, под фишками.
+    if (player != null) _drawActivePathEdges(canvas, player, cell, rectOf);
 
     // Клетка назначения выбранной фишки.
     final dest = destination;
     if (dest != null) {
       final r = rectOf(dest, cell * 0.08);
       final color = destinationColor?.dark ?? Colors.black;
-      canvas.drawCircle(r.center, cell * 0.42, Paint()..color = color.withValues(alpha: 0.15 + 0.15 * pulse.value));
+      canvas.drawCircle(
+        r.center,
+        cell * 0.42,
+        Paint()..color = color.withValues(alpha: 0.15 + 0.15 * pulse.value),
+      );
       canvas.drawCircle(
         r.center,
         cell * 0.42,
@@ -180,36 +196,56 @@ class BoardPainter extends CustomPainter {
   static const _bonusFill = Color(0xFFFFE082);
   static const _bonusBorder = Color(0xFFFFA000);
 
-  /// Ход игрока: путь его фишек от старта до конца финиша обведён снаружи по контуру,
-  /// как коридор. У каждой клетки пути рисуются только те стороны, которые не граничат
-  /// с соседними клетками пути: у старта — три стороны, дальше — по две, на углах кольца
-  /// и на повороте в финиш обводится угол, у последней клетки финиша — снова три.
-  void _drawActivePathOutline(Canvas canvas, PlayerColor c, double cell) {
+  /// Ход игрока: путь его фишек от старта до конца финиша выделен гранями самих клеток.
+  /// У каждой клетки пути цветом игрока перекрашены только грани, не обращённые к соседним
+  /// клеткам пути: у первой и последней — три, у остальных — по две (на поворотах — угол).
+  /// Толщина — как у обычной рамки клетки, цвет приглушённый.
+  void _drawActivePathEdges(
+    Canvas canvas,
+    PlayerColor c,
+    double cell,
+    Rect Function(GridPos, [double]) rectOf,
+  ) {
     final path = [
       for (var p = 0; p <= finishEndProgress; p++) BoardGeometry.cellFor(c, 0, p, direction),
     ];
     final paint = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = cell * 0.07
-      ..strokeCap = StrokeCap.round
-      ..color = c.dark;
-    bool adjacent(GridPos a, GridPos b, int dr, int dc) => b.row - a.row == dr && b.col - a.col == dc;
+      ..strokeWidth = max(1, cell * 0.03)
+      ..color = c.color.withValues(alpha: 0.6);
     for (var i = 0; i < path.length; i++) {
       final g = path[i];
       final neighbours = [if (i > 0) path[i - 1], if (i + 1 < path.length) path[i + 1]];
-      bool open(int dr, int dc) => neighbours.any((n) => adjacent(g, n, dr, dc));
-      final r = Rect.fromLTWH(g.col * cell, g.row * cell, cell, cell).deflate(cell * 0.02);
-      if (!open(-1, 0)) canvas.drawLine(r.topLeft, r.topRight, paint);
-      if (!open(1, 0)) canvas.drawLine(r.bottomLeft, r.bottomRight, paint);
-      if (!open(0, -1)) canvas.drawLine(r.topLeft, r.bottomLeft, paint);
-      if (!open(0, 1)) canvas.drawLine(r.topRight, r.bottomRight, paint);
+      bool open(int dr, int dc) =>
+          neighbours.any((n) => n.row - g.row == dr && n.col - g.col == dc);
+      // Клетка делится диагоналями на четыре треугольника — по одному на грань; рамка
+      // клетки рисуется только внутри треугольников закрытых граней, так что скругления
+      // углов делятся между гранями пополам.
+      final box = rectOf(g);
+      final m = box.center;
+      final clip = Path();
+      void side(Offset a, Offset b) => clip.addPolygon([m, a, b], true);
+      if (!open(-1, 0)) side(box.topLeft, box.topRight);
+      if (!open(1, 0)) side(box.bottomLeft, box.bottomRight);
+      if (!open(0, -1)) side(box.topLeft, box.bottomLeft);
+      if (!open(0, 1)) side(box.topRight, box.bottomRight);
+      canvas.save();
+      canvas.clipPath(clip);
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(rectOf(g, cell * 0.06), Radius.circular(cell * 0.18)),
+        paint,
+      );
+      canvas.restore();
     }
   }
 
   /// Эмодзи по центру точки [c].
   void _drawEmoji(Canvas canvas, String emoji, Offset c, double size) {
     final tp = TextPainter(
-      text: TextSpan(text: emoji, style: TextStyle(fontSize: size, height: 1.0)),
+      text: TextSpan(
+        text: emoji,
+        style: TextStyle(fontSize: size, height: 1.0),
+      ),
       textDirection: TextDirection.ltr,
     )..layout();
     tp.paint(canvas, c - Offset(tp.width / 2, tp.height / 2));
@@ -232,8 +268,16 @@ class BoardPainter extends CustomPainter {
   @override
   bool shouldRepaint(BoardPainter old) =>
       old.direction != direction ||
-      old.pulsingStart != pulsingStart ||
       old.activePlayer != activePlayer ||
+      !_samePath(old.movePath, movePath) ||
       old.destination != destination ||
       old.destinationColor != destinationColor;
+
+  static bool _samePath(List<GridPos> a, List<GridPos> b) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
+  }
 }
