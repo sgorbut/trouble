@@ -37,22 +37,16 @@ class DiceWidget extends StatefulWidget {
 
 class _DiceWidgetState extends State<DiceWidget> with TickerProviderStateMixin {
   /// Подскоки и вращение во время броска.
-  late final AnimationController _tumble = AnimationController(
-    vsync: this,
-    duration: diceRollDuration,
-  );
+  late final AnimationController _tumble =
+      AnimationController(vsync: this, duration: diceRollDuration);
 
   /// «Приземление» после броска: короткий пружинящий отскок.
-  late final AnimationController _land = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 420),
-  );
+  late final AnimationController _land =
+      AnimationController(vsync: this, duration: const Duration(milliseconds: 420));
 
   /// Пульсация-приглашение, пока игрок может бросить.
-  late final AnimationController _idle = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 1100),
-  );
+  late final AnimationController _idle =
+      AnimationController(vsync: this, duration: const Duration(milliseconds: 1100));
 
   static const _hops = 3;
 
@@ -144,14 +138,11 @@ class _DiceWidgetState extends State<DiceWidget> with TickerProviderStateMixin {
                 final damp = 1 - t;
 
                 // Высота подскока: три затухающих отскока.
-                final hop = rolling
-                    ? (sin(t * pi * _hops)).abs() * s * 0.28 * damp
-                    : 0.0;
+                final hop = rolling ? (sin(t * pi * _hops)).abs() * s * 0.28 * damp : 0.0;
                 // Приземление: сжатие и пружинящий возврат.
                 final landT = _land.isAnimating ? _land.value : 1.0;
                 final squash = 1 + 0.18 * sin(landT * pi) * (1 - landT);
-                final idleScale =
-                    1 + 0.05 * Curves.easeInOut.transform(_idle.value);
+                final idleScale = 1 + 0.05 * Curves.easeInOut.transform(_idle.value);
 
                 final transform = Matrix4.identity()
                   ..setEntry(3, 2, 0.0018) // перспектива
@@ -160,12 +151,7 @@ class _DiceWidgetState extends State<DiceWidget> with TickerProviderStateMixin {
                   // Вращение в плоскости экрана с замедлением к концу броска.
                   transform.rotateZ(Curves.easeOut.transform(t) * pi * 3);
                 }
-                transform.scaleByDouble(
-                  idleScale * squash,
-                  idleScale / squash,
-                  1.0,
-                  1.0,
-                );
+                transform.scaleByDouble(idleScale * squash, idleScale / squash, 1.0, 1.0);
 
                 final shadowScale = 1 - hop / (s * 0.6);
                 return Stack(
@@ -178,12 +164,8 @@ class _DiceWidgetState extends State<DiceWidget> with TickerProviderStateMixin {
                         width: s * 0.9 * shadowScale,
                         height: s * 0.14 * shadowScale,
                         decoration: BoxDecoration(
-                          borderRadius: BorderRadius.all(
-                            Radius.elliptical(s, s * 0.14),
-                          ),
-                          color: Colors.black.withValues(
-                            alpha: 0.18 * shadowScale,
-                          ),
+                          borderRadius: BorderRadius.all(Radius.elliptical(s, s * 0.14)),
+                          color: Colors.black.withValues(alpha: 0.18 * shadowScale),
                         ),
                       ),
                     ),
@@ -243,12 +225,7 @@ class _DiceFace extends StatelessWidget {
         borderRadius: BorderRadius.circular(size * 0.2),
         border: Border.all(color: accent, width: enabled || rolling ? 4 : 2),
         boxShadow: [
-          if (enabled)
-            BoxShadow(
-              color: accent.withValues(alpha: 0.55),
-              blurRadius: 14,
-              spreadRadius: 2,
-            ),
+          if (enabled) BoxShadow(color: accent.withValues(alpha: 0.55), blurRadius: 14, spreadRadius: 2),
         ],
       ),
       child: rolling
@@ -275,26 +252,11 @@ class _PipsPainter extends CustomPainter {
     1: [Offset(0.5, 0.5)],
     2: [Offset(0.27, 0.27), Offset(0.73, 0.73)],
     3: [Offset(0.27, 0.27), Offset(0.5, 0.5), Offset(0.73, 0.73)],
-    4: [
-      Offset(0.27, 0.27),
-      Offset(0.73, 0.27),
-      Offset(0.27, 0.73),
-      Offset(0.73, 0.73),
-    ],
-    5: [
-      Offset(0.27, 0.27),
-      Offset(0.73, 0.27),
-      Offset(0.5, 0.5),
-      Offset(0.27, 0.73),
-      Offset(0.73, 0.73),
-    ],
+    4: [Offset(0.27, 0.27), Offset(0.73, 0.27), Offset(0.27, 0.73), Offset(0.73, 0.73)],
+    5: [Offset(0.27, 0.27), Offset(0.73, 0.27), Offset(0.5, 0.5), Offset(0.27, 0.73), Offset(0.73, 0.73)],
     6: [
-      Offset(0.27, 0.25),
-      Offset(0.73, 0.25),
-      Offset(0.27, 0.5),
-      Offset(0.73, 0.5),
-      Offset(0.27, 0.75),
-      Offset(0.73, 0.75),
+      Offset(0.27, 0.25), Offset(0.73, 0.25), Offset(0.27, 0.5),
+      Offset(0.73, 0.5), Offset(0.27, 0.75), Offset(0.73, 0.75),
     ],
   };
 
@@ -303,25 +265,15 @@ class _PipsPainter extends CustomPainter {
     if (value == 0) {
       final tp = TextPainter(
         // Кубик ещё не брошен.
-        text: TextSpan(
-          text: '🎲',
-          style: TextStyle(fontSize: size.width * 0.55, height: 1.0),
-        ),
+        text: TextSpan(text: '🎲', style: TextStyle(fontSize: size.width * 0.55, height: 1.0)),
         textDirection: TextDirection.ltr,
       )..layout();
-      tp.paint(
-        canvas,
-        size.center(Offset.zero) - Offset(tp.width / 2, tp.height / 2),
-      );
+      tp.paint(canvas, size.center(Offset.zero) - Offset(tp.width / 2, tp.height / 2));
       return;
     }
     final paint = Paint()..color = const Color(0xFF263238);
     for (final p in _layout[value]!) {
-      canvas.drawCircle(
-        Offset(p.dx * size.width, p.dy * size.height),
-        size.width * 0.085,
-        paint,
-      );
+      canvas.drawCircle(Offset(p.dx * size.width, p.dy * size.height), size.width * 0.085, paint);
     }
   }
 
