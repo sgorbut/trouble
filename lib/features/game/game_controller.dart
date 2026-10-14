@@ -12,12 +12,7 @@ import 'sound_service.dart';
 
 /// Короткий визуальный эффект на клетке поля (сброс фишки, заход в финиш).
 class BoardEffect {
-  const BoardEffect({
-    required this.id,
-    required this.cell,
-    required this.color,
-    required this.kind,
-  });
+  const BoardEffect({required this.id, required this.cell, required this.color, required this.kind});
   final int id;
   final GridPos cell;
   final PlayerColor color;
@@ -98,9 +93,7 @@ class GameViewState {
   }
 
   bool get canRoll =>
-      game.phase == GamePhase.waitingForRoll &&
-      !game.currentPlayer.isBot &&
-      !paused;
+      game.phase == GamePhase.waitingForRoll && !game.currentPlayer.isBot && !paused;
 
   GameViewState copyWith({
     GameState? game,
@@ -115,22 +108,23 @@ class GameViewState {
     bool? paused,
     GameState? Function()? undoSnapshot,
     Lottery? Function()? lottery,
-  }) => GameViewState(
-    game: game ?? this.game,
-    configs: configs,
-    direction: direction,
-    display: display ?? this.display,
-    shownDice: shownDice != null ? shownDice() : this.shownDice,
-    rolling: rolling ?? this.rolling,
-    legalMoves: legalMoves ?? this.legalMoves,
-    selected: selected != null ? selected() : this.selected,
-    fastPieces: fastPieces ?? this.fastPieces,
-    effects: effects ?? this.effects,
-    notice: notice != null ? notice() : this.notice,
-    paused: paused ?? this.paused,
-    undoSnapshot: undoSnapshot != null ? undoSnapshot() : this.undoSnapshot,
-    lottery: lottery != null ? lottery() : this.lottery,
-  );
+  }) =>
+      GameViewState(
+        game: game ?? this.game,
+        configs: configs,
+        direction: direction,
+        display: display ?? this.display,
+        shownDice: shownDice != null ? shownDice() : this.shownDice,
+        rolling: rolling ?? this.rolling,
+        legalMoves: legalMoves ?? this.legalMoves,
+        selected: selected != null ? selected() : this.selected,
+        fastPieces: fastPieces ?? this.fastPieces,
+        effects: effects ?? this.effects,
+        notice: notice != null ? notice() : this.notice,
+        paused: paused ?? this.paused,
+        undoSnapshot: undoSnapshot != null ? undoSnapshot() : this.undoSnapshot,
+        lottery: lottery != null ? lottery() : this.lottery,
+      );
 }
 
 final randomProvider = Provider<Random>((ref) => Random());
@@ -152,11 +146,7 @@ class GameController extends Notifier<GameViewState?> {
   GameViewState get _s => state!;
 
   /// Новая партия. Направление и жребий по умолчанию берутся из настроек.
-  void start(
-    List<PlayerConfig> configs, {
-    MoveDirection? direction,
-    bool? lottery,
-  }) {
+  void start(List<PlayerConfig> configs, {MoveDirection? direction, bool? lottery}) {
     _epoch++;
     final settings = ref.read(settingsProvider);
     final dir = direction ?? settings.direction;
@@ -167,9 +157,7 @@ class GameController extends Notifier<GameViewState?> {
       configs: configs,
       direction: dir,
       display: _displayFrom(game),
-      lottery: useLottery
-          ? Lottery([for (final p in game.players) p.color], const {})
-          : null,
+      lottery: useLottery ? Lottery([for (final p in game.players) p.color], const {}) : null,
       notice: useLottery ? 'Жребий: кто выбросит больше, ходит первым' : null,
     );
     _scheduleBotTurn();
@@ -193,8 +181,8 @@ class GameController extends Notifier<GameViewState?> {
   }
 
   Map<PieceRef, int> _displayFrom(GameState game) => {
-    for (final p in game.allPieces) PieceRef(p.owner, p.id): p.progress,
-  };
+        for (final p in game.allPieces) PieceRef(p.owner, p.id): p.progress,
+      };
 
   /// Пауза с учётом паузы игры. Возвращает false, если цепочку надо прервать.
   Future<bool> _wait(Duration d, int epoch) async {
@@ -206,16 +194,12 @@ class GameController extends Notifier<GameViewState?> {
     }
   }
 
-  Duration _botDelay() => Duration(
-    milliseconds:
-        botDelayMinMs + _random.nextInt(botDelayMaxMs - botDelayMinMs + 1),
-  );
+  Duration _botDelay() =>
+      Duration(milliseconds: botDelayMinMs + _random.nextInt(botDelayMaxMs - botDelayMinMs + 1));
 
   void _scheduleBotTurn() async {
     final s = state;
-    if (s == null ||
-        s.game.phase != GamePhase.waitingForRoll ||
-        !s.game.currentPlayer.isBot) {
+    if (s == null || s.game.phase != GamePhase.waitingForRoll || !s.game.currentPlayer.isBot) {
       return;
     }
     final epoch = _epoch;
@@ -253,9 +237,7 @@ class GameController extends Notifier<GameViewState?> {
         shownDice: () => dice,
         game: rolled.copyWith(phase: GamePhase.animating),
         legalMoves: const [],
-        notice: () => dice == 6
-            ? 'Ходов нет, но за 6 — ещё бросок'
-            : 'Ходов нет — ход переходит',
+        notice: () => dice == 6 ? 'Ходов нет, но за 6 — ещё бросок' : 'Ходов нет — ход переходит',
       );
       if (!await _wait(noMovesPause, epoch)) return;
       state = _s.copyWith(
@@ -267,12 +249,7 @@ class GameController extends Notifier<GameViewState?> {
       return;
     }
 
-    state = _s.copyWith(
-      rolling: false,
-      shownDice: () => dice,
-      game: rolled,
-      legalMoves: moves,
-    );
+    state = _s.copyWith(rolling: false, shownDice: () => dice, game: rolled, legalMoves: moves);
 
     if (rolled.currentPlayer.isBot) {
       if (!await _wait(_botDelay(), epoch)) return;
@@ -308,22 +285,17 @@ class GameController extends Notifier<GameViewState?> {
     );
     if (!await _wait(lotteryPause, epoch)) return;
 
-    int indexOf(PlayerColor c) =>
-        before.players.indexWhere((p) => p.color == c);
+    int indexOf(PlayerColor c) => before.players.indexWhere((p) => p.color == c);
     String nameOf(PlayerColor c) => before.players[indexOf(c)].name;
     GameState turnOf(PlayerColor c) => before.copyWith(
-      currentPlayerIndex: indexOf(c),
-      phase: GamePhase.waitingForRoll,
-      diceValue: () => null,
-    );
+          currentPlayerIndex: indexOf(c),
+          phase: GamePhase.waitingForRoll,
+          diceValue: () => null,
+        );
 
     final pending = lot.contenders.where((c) => !rolls.containsKey(c)).toList();
     if (pending.isNotEmpty) {
-      state = _s.copyWith(
-        game: turnOf(pending.first),
-        shownDice: () => null,
-        notice: () => null,
-      );
+      state = _s.copyWith(game: turnOf(pending.first), shownDice: () => null, notice: () => null);
     } else {
       final best = lot.contenders.map((c) => rolls[c]!).reduce(max);
       final leaders = lot.contenders.where((c) => rolls[c] == best).toList();
@@ -332,8 +304,7 @@ class GameController extends Notifier<GameViewState?> {
           game: turnOf(leaders.first),
           shownDice: () => null,
           lottery: () => Lottery(leaders, const {}),
-          notice: () =>
-              'Ничья ($best): ${leaders.map(nameOf).join(', ')} — перебрасывают',
+          notice: () => 'Ничья ($best): ${leaders.map(nameOf).join(', ')} — перебрасывают',
         );
       } else {
         state = _s.copyWith(
@@ -376,11 +347,7 @@ class GameController extends Notifier<GameViewState?> {
   void confirmSelected() {
     final s = state;
     final move = s?.selectedMove;
-    if (s == null ||
-        move == null ||
-        s.paused ||
-        s.game.phase != GamePhase.waitingForMove)
-      return;
+    if (s == null || move == null || s.paused || s.game.phase != GamePhase.waitingForMove) return;
     _executeMove(move, _epoch);
   }
 
@@ -435,16 +402,8 @@ class GameController extends Notifier<GameViewState?> {
 
     final captured = move.captured;
     if (captured != null) {
-      _addEffect(
-        BoardGeometry.cellFor(
-          move.piece.owner,
-          move.piece.id,
-          move.to,
-          game.direction,
-        ),
-        captured.owner,
-        BoardEffectKind.capture,
-      );
+      _addEffect(BoardGeometry.cellFor(move.piece.owner, move.piece.id, move.to, game.direction),
+          captured.owner, BoardEffectKind.capture);
       state = _s.copyWith(
         display: {..._s.display, captured: homeProgress},
         fastPieces: {captured},
@@ -454,16 +413,8 @@ class GameController extends Notifier<GameViewState?> {
     }
 
     if (move.entersFinish) {
-      _addEffect(
-        BoardGeometry.cellFor(
-          move.piece.owner,
-          move.piece.id,
-          move.to,
-          game.direction,
-        ),
-        move.piece.owner,
-        BoardEffectKind.finish,
-      );
+      _addEffect(BoardGeometry.cellFor(move.piece.owner, move.piece.id, move.to, game.direction),
+          move.piece.owner, BoardEffectKind.finish);
     }
 
     final next = GameEngine.applyMove(game, move);
@@ -486,22 +437,14 @@ class GameController extends Notifier<GameViewState?> {
   }
 
   void _addEffect(GridPos cell, PlayerColor color, BoardEffectKind kind) {
-    final effect = BoardEffect(
-      id: _effectSeq++,
-      cell: cell,
-      color: color,
-      kind: kind,
-    );
+    final effect = BoardEffect(id: _effectSeq++, cell: cell, color: color, kind: kind);
     state = _s.copyWith(effects: [..._s.effects, effect]);
     Future<void>.delayed(const Duration(milliseconds: 900), () {
       if (!ref.mounted || state == null) return;
-      state = _s.copyWith(
-        effects: _s.effects.where((e) => e.id != effect.id).toList(),
-      );
+      state = _s.copyWith(effects: _s.effects.where((e) => e.id != effect.id).toList());
     });
   }
 }
 
-final gameControllerProvider = NotifierProvider<GameController, GameViewState?>(
-  GameController.new,
-);
+final gameControllerProvider =
+    NotifierProvider<GameController, GameViewState?>(GameController.new);
