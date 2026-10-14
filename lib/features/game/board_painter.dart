@@ -14,6 +14,7 @@ class BoardPainter extends CustomPainter {
     required this.pulse,
     required this.direction,
     this.activePlayer,
+    this.showActivePath = true,
     this.movePath = const [],
     this.destination,
     this.destinationColor,
@@ -27,6 +28,9 @@ class BoardPainter extends CustomPainter {
   /// Чей сейчас ход: его зона дома рисуется насыщеннее и с рамкой, а путь фишек
   /// от старта до финиша выделен гранями клеток.
   final PlayerColor? activePlayer;
+
+  /// Рисовать ли путь ходящего игрока (во время жребия — нет, ходов ещё нет).
+  final bool showActivePath;
 
   /// Клетки, по которым пройдёт выбранная фишка (до клетки назначения включительно).
   final List<GridPos> movePath;
@@ -111,7 +115,7 @@ class BoardPainter extends CustomPainter {
     for (final c in PlayerColor.values) {
       Offset centerAt(int progress) =>
           rectOf(BoardGeometry.cellFor(c, 0, progress, direction)).center;
-      final paint = Paint()..color = c.color.withValues(alpha: 0.75);
+      final paint = Paint()..color = c.color.withValues(alpha: 0.4);
       _drawArrow(canvas, centerAt(0), centerAt(1) - centerAt(0), cell * 0.32, paint);
     }
 
@@ -133,7 +137,7 @@ class BoardPainter extends CustomPainter {
     }
 
     // Путь текущего игрока: обводка клеток и линия через них — поверх клеток, под фишками.
-    if (player != null) _drawActivePath(canvas, player, cell, cellShape);
+    if (player != null && showActivePath) _drawActivePath(canvas, player, cell, cellShape);
 
     // Клетка назначения выбранной фишки.
     final dest = destination;
@@ -232,6 +236,7 @@ class BoardPainter extends CustomPainter {
   bool shouldRepaint(BoardPainter old) =>
       old.direction != direction ||
       old.activePlayer != activePlayer ||
+      old.showActivePath != showActivePath ||
       !_samePath(old.movePath, movePath) ||
       old.destination != destination ||
       old.destinationColor != destinationColor;

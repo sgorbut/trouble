@@ -95,6 +95,7 @@ class _BoardViewState extends ConsumerState<BoardView> with TickerProviderStateM
                   pulse: _pulse,
                   direction: game.direction,
                   activePlayer: game.phase == GamePhase.finished ? null : current,
+                  showActivePath: view.lottery == null,
                   movePath: movePath,
                   destination: destCell,
                   destinationColor: current,
