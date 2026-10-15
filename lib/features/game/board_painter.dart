@@ -210,11 +210,13 @@ class BoardPainter extends CustomPainter {
       ),
       textDirection: TextDirection.ltr,
     )..layout();
-    final layer = c - Offset(tp.width / 2, tp.height / 2) & tp.size;
+    final topLeft = c - Offset(tp.width / 2, tp.height / 2);
     if (opacity < 1) {
+      // Глиф эмодзи выше строки текста (height: 1.0) — слой с запасом, иначе верх обрезается.
+      final layer = (topLeft & tp.size).inflate(size * 0.5);
       canvas.saveLayer(layer, Paint()..color = Colors.white.withValues(alpha: opacity));
     }
-    tp.paint(canvas, layer.topLeft);
+    tp.paint(canvas, topLeft);
     if (opacity < 1) canvas.restore();
   }
 
