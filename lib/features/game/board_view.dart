@@ -61,15 +61,18 @@ class _BoardViewState extends ConsumerState<BoardView> with TickerProviderStateM
             selectedMove.to,
             game.direction,
           );
-    // Бонусные клетки под фишками (по отображаемым позициям — цвет идёт вместе с фишкой).
+    // Бонусные клетки, на которых стоят фишки, окрашиваются цветом ходящего игрока.
+    // Фишки в движении (отображаемая позиция ещё не совпала с итоговой) не учитываются:
+    // проходя бонусную клетку, фишка её не выделяет.
     final bonusCells = {
       for (final i in bonusRingIndices(game.direction)) BoardGeometry.ringCell(i),
     };
     final bonusOccupants = <GridPos, PlayerColor>{};
     for (final p in game.allPieces) {
-      final progress = view.display[PieceRef(p.owner, p.id)] ?? homeProgress;
-      final g = BoardGeometry.cellFor(p.owner, p.id, progress, game.direction);
-      if (bonusCells.contains(g)) bonusOccupants[g] = p.owner;
+      final shown = view.display[PieceRef(p.owner, p.id)] ?? homeProgress;
+      if (shown != p.progress) continue;
+      final g = BoardGeometry.cellFor(p.owner, p.id, shown, game.direction);
+      if (bonusCells.contains(g)) bonusOccupants[g] = current;
     }
     // Клетки, которые пройдёт выбранная фишка: из дома — со стартовой клетки.
     final movePath = selectedMove == null
