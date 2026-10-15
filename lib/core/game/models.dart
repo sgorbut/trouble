@@ -78,6 +78,7 @@ class Player {
     required this.name,
     required this.pieces,
     this.avatar = '',
+    this.stats = const PlayerStats(),
   });
 
   factory Player.initial(PlayerColor color, PlayerType type, String name, {String avatar = ''}) =>
@@ -97,15 +98,49 @@ class Player {
   /// Аватар игрока (эмодзи); пустая строка — без аватара.
   final String avatar;
 
+  /// Статистика за партию.
+  final PlayerStats stats;
+
   bool get isBot => type == PlayerType.bot;
   bool get allFinished => pieces.every((p) => p.isFinished);
 
-  Player copyWith({List<Piece>? pieces}) => Player(
+  Player copyWith({List<Piece>? pieces, PlayerStats? stats}) => Player(
         color: color,
         type: type,
         name: name,
         avatar: avatar,
         pieces: pieces ?? this.pieces,
+        stats: stats ?? this.stats,
+      );
+}
+
+/// Статистика игрока за партию. Хранится в [GameState], поэтому отмена хода
+/// откатывает и её.
+class PlayerStats {
+  const PlayerStats({
+    this.moves = 0,
+    this.bonuses = 0,
+    this.captures = 0,
+    this.deaths = 0,
+  });
+
+  /// Сделано ходов фишками.
+  final int moves;
+
+  /// Дополнительных бросков: выпавших шестёрок и остановок на бонусной клетке.
+  final int bonuses;
+
+  /// Сбито фишек соперников.
+  final int captures;
+
+  /// Своих фишек сбито соперниками.
+  final int deaths;
+
+  PlayerStats copyWith({int? moves, int? bonuses, int? captures, int? deaths}) => PlayerStats(
+        moves: moves ?? this.moves,
+        bonuses: bonuses ?? this.bonuses,
+        captures: captures ?? this.captures,
+        deaths: deaths ?? this.deaths,
       );
 }
 

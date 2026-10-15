@@ -390,4 +390,37 @@ void main() {
       expect(s.winner, isNotNull);
     });
   }
+
+  group('статистика', () {
+    const red = PlayerColor.red;
+
+    test('ход фишкой засчитывается в ходы', () {
+      final s = GameEngine.applyRoll(makeState(red: [0, -1, -1]), 2);
+      final next = GameEngine.applyMove(s, moveFor(GameEngine.getLegalMoves(s, 2), 0));
+      expect(next.playerOf(red).stats.moves, 1);
+      expect(next.playerOf(red).stats.bonuses, 0);
+      expect(next.playerOf(yellow).stats.moves, 0);
+    });
+
+    test('шестёрка — бонус', () {
+      final s = GameEngine.applyRoll(makeState(), 6);
+      expect(s.playerOf(red).stats.bonuses, 1);
+      expect(GameEngine.applyRoll(makeState(), 5).playerOf(red).stats.bonuses, 0);
+    });
+
+    test('остановка на бонусной клетке — бонус', () {
+      final s = GameEngine.applyRoll(makeState(red: [2, -1, -1]), 3);
+      final next = GameEngine.applyMove(s, moveFor(GameEngine.getLegalMoves(s, 3), 0));
+      expect(next.playerOf(red).stats.bonuses, 1);
+    });
+
+    test('сбитая фишка: съедено у ходящего, смерть у соперника', () {
+      final s = GameEngine.applyRoll(makeState(yellow: [progressAt(yellow, redCell(4)), -1, -1]), 5);
+      final next = GameEngine.applyMove(s, moveFor(GameEngine.getLegalMoves(s, 5), 0));
+      expect(next.playerOf(red).stats.captures, 1);
+      expect(next.playerOf(red).stats.deaths, 0);
+      expect(next.playerOf(yellow).stats.deaths, 1);
+      expect(next.playerOf(yellow).stats.captures, 0);
+    });
+  });
 }

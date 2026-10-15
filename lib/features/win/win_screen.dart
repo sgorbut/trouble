@@ -6,6 +6,7 @@ import '../../ui/avatars.dart';
 import '../../ui/theme.dart';
 import '../game/game_controller.dart';
 import '../game/game_screen.dart';
+import '../stats/stats_screen.dart';
 
 class WinScreen extends ConsumerWidget {
   const WinScreen({
@@ -13,11 +14,15 @@ class WinScreen extends ConsumerWidget {
     required this.winnerName,
     required this.winnerColor,
     this.winnerAvatar = '',
+    this.players = const [],
   });
 
   final String winnerName;
   final PlayerColor winnerColor;
   final String winnerAvatar;
+
+  /// Игроки партии со статистикой — для экрана статистики.
+  final List<Player> players;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -51,6 +56,18 @@ class WinScreen extends ConsumerWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 40),
+                if (players.isNotEmpty) ...[
+                  OutlinedButton.icon(
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => StatsScreen(players: players, winner: winnerColor),
+                      ),
+                    ),
+                    icon: const Icon(Icons.bar_chart),
+                    label: const Text('Статистика'),
+                  ),
+                  const SizedBox(height: 12),
+                ],
                 FilledButton(
                   onPressed: () {
                     ref.read(gameControllerProvider.notifier).restart();

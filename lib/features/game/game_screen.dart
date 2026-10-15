@@ -79,6 +79,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
             winnerName: player.name,
             winnerColor: winner,
             winnerAvatar: player.avatar,
+            players: game.players,
           ),
         ));
       });

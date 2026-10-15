@@ -23,10 +23,10 @@ class GameEngine {
 
   /// Цвета, участвующие в партии на [count] игроков.
   static List<PlayerColor> colorsForCount(int count) => switch (count) {
-        2 => const [PlayerColor.red, PlayerColor.yellow],
-        3 => const [PlayerColor.red, PlayerColor.blue, PlayerColor.yellow],
-        _ => PlayerColor.values,
-      };
+    2 => const [PlayerColor.red, PlayerColor.yellow],
+    3 => const [PlayerColor.red, PlayerColor.blue, PlayerColor.yellow],
+    _ => PlayerColor.values,
+  };
 
   /// Очерёдность ходов совпадает с направлением движения: по часовой —
   /// красный, синий, жёлтый, зелёный; против — красный, зелёный, жёлтый, синий.
@@ -38,9 +38,9 @@ class GameEngine {
     MoveDirection direction = MoveDirection.counterclockwise,
   }) {
     assert(configs.length >= 2 && configs.length <= 4);
-    final sorted = [...configs]
-      ..sort((a, b) =>
-          turnOrderKey(a.color, direction).compareTo(turnOrderKey(b.color, direction)));
+    final sorted = [
+      ...configs,
+    ]..sort((a, b) => turnOrderKey(a.color, direction).compareTo(turnOrderKey(b.color, direction)));
     return GameState(
       players: [for (final c in sorted) Player.initial(c.color, c.type, c.name, avatar: c.avatar)],
       direction: direction,
@@ -99,28 +99,56 @@ class GameEngine {
     );
   }
 
-  /// Фиксирует бросок кубика.
+  /// Фиксирует бросок кубика. Шестёрка засчитывается в статистику как бонус.
   static GameState applyRoll(GameState state, int dice) => state.copyWith(
-        diceValue: () => dice,
-        extraTurn: dice == 6,
-        phase: GamePhase.waitingForMove,
-      );
+    players: dice == 6
+        ? _withStats(state, state.currentPlayer.color, (s) => s.copyWith(bonuses: s.bonuses + 1))
+        : null,
+    diceValue: () => dice,
+    extraTurn: dice == 6,
+    phase: GamePhase.waitingForMove,
+  );
+
+  /// Игроки с изменённой статистикой игрока [color].
+  static List<Player> _withStats(
+    GameState state,
+    PlayerColor color,
+    PlayerStats Function(PlayerStats) update,
+  ) => [for (final p in state.players) p.color == color ? p.copyWith(stats: update(p.stats)) : p];
 
   /// Выполняет ход и передаёт очередь (или даёт дополнительный бросок после 6).
   static GameState applyMove(GameState state, Move move) {
+    final moverColor = move.piece.owner;
+    final victim = move.captured?.owner;
+    PlayerStats statsOf(Player player) {
+      var s = player.stats;
+      if (player.color == moverColor) {
+        s = s.copyWith(
+          moves: s.moves + 1,
+          bonuses: s.bonuses + (move.bonus ? 1 : 0),
+          captures: s.captures + (move.isCapture ? 1 : 0),
+        );
+      }
+      if (player.color == victim) s = s.copyWith(deaths: s.deaths + 1);
+      return s;
+    }
+
     final players = [
       for (final player in state.players)
-        player.copyWith(pieces: [
-          for (final p in player.pieces)
-            if (p.owner == move.piece.owner && p.id == move.piece.id)
-              p.copyWith(progress: move.to)
-            else if (move.captured != null &&
-                p.owner == move.captured!.owner &&
-                p.id == move.captured!.id)
-              p.copyWith(progress: homeProgress)
-            else
-              p,
-        ]),
+        player.copyWith(
+          stats: statsOf(player),
+          pieces: [
+            for (final p in player.pieces)
+              if (p.owner == move.piece.owner && p.id == move.piece.id)
+                p.copyWith(progress: move.to)
+              else if (move.captured != null &&
+                  p.owner == move.captured!.owner &&
+                  p.id == move.captured!.id)
+                p.copyWith(progress: homeProgress)
+              else
+                p,
+          ],
+        ),
     ];
     final moved = state.copyWith(players: players);
     final mover = moved.currentPlayer;
@@ -137,8 +165,9 @@ class GameEngine {
   static GameState _advanceTurn(GameState state, {bool bonus = false}) {
     final again = state.diceValue == 6 || bonus;
     return state.copyWith(
-      currentPlayerIndex:
-          again ? state.currentPlayerIndex : (state.currentPlayerIndex + 1) % state.players.length,
+      currentPlayerIndex: again
+          ? state.currentPlayerIndex
+          : (state.currentPlayerIndex + 1) % state.players.length,
       diceValue: () => null,
       phase: GamePhase.waitingForRoll,
       extraTurn: again,
