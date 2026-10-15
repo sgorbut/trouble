@@ -94,7 +94,7 @@ class BoardPainter extends CustomPainter {
       final cells = BoardGeometry.finishCells(c, direction);
       for (var i = 0; i < cells.length; i++) {
         final rr = cellShape(cells[i]);
-        canvas.drawRRect(rr, Paint()..color = Color.lerp(c.light, c.color, i / 4)!);
+        canvas.drawRRect(rr, Paint()..color = Color.lerp(c.light, c.color, 0.25)!);
         canvas.drawRRect(
           rr,
           Paint()

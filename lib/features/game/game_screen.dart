@@ -163,6 +163,8 @@ class _GameScreenState extends ConsumerState<GameScreen> {
 class _ControlPanel extends StatelessWidget {
   const _ControlPanel({required this.view, required this.vertical});
 
+  static const indicatorHeight = 84.0;
+
   final GameViewState view;
   final bool vertical;
 
@@ -198,13 +200,17 @@ class _ControlPanel extends StatelessWidget {
     final player = game.currentPlayer;
     final color = player.color;
 
+    // Фиксированная высота — под имя в одну строку и подсказку в две (самые длинные
+    // подсказки: «Нажмите фишку ещё раз или клетку назначения», ничья в жребии),
+    // чтобы панель не прыгала при смене текста. Цвет — как у зоны дома ходящего игрока.
+    final textColor = color.dark;
     final indicator = AnimatedContainer(
       duration: const Duration(milliseconds: 250),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      height: indicatorHeight,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
-        color: color.color,
+        color: Color.alphaBlend(color.color.withValues(alpha: 0.45), AppTheme.boardBackground),
         borderRadius: BorderRadius.circular(14),
-        boxShadow: [BoxShadow(color: color.color.withValues(alpha: 0.4), blurRadius: 10)],
       ),
       child: Row(
         children: [
@@ -221,17 +227,23 @@ class _ControlPanel extends StatelessWidget {
                       child: Text(
                         player.name,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(color: color.onColor, fontWeight: FontWeight.bold, fontSize: 18),
+                        maxLines: 1,
+                        style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 18),
                       ),
                     ),
                     if (player.isBot) ...[
                       const SizedBox(width: 6),
-                      Icon(Icons.smart_toy_outlined, color: color.onColor, size: 18),
+                      Icon(Icons.smart_toy_outlined, color: textColor, size: 18),
                     ],
                   ],
                 ),
                 const SizedBox(height: 2),
-                Text(_hint(), style: TextStyle(color: color.onColor, fontSize: 14)),
+                Text(
+                  _hint(),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: Colors.black87, fontSize: 14, height: 1.2),
+                ),
               ],
             ),
           ),
@@ -295,7 +307,12 @@ class _Scores extends StatelessWidget {
                 Expanded(child: Text(p.name, overflow: TextOverflow.ellipsis)),
                 const SizedBox(width: 6),
               ],
-              Text(
+              SizedBox(
+                // Ширина под самое длинное значение («🎲 6», «3/3») — плитки счёта не
+                // меняют размер, и область игрока рядом с ними тоже.
+                width: 40,
+                child: Text(
+                textAlign: TextAlign.end,
                 // Во время жребия — выпавшее значение, иначе — сколько фишек в финише.
                 view.lottery != null
                     ? (view.lottery!.rolls[p.color] != null
@@ -303,6 +320,7 @@ class _Scores extends StatelessWidget {
                         : view.lottery!.contenders.contains(p.color) ? '🎲 …' : '—')
                     : '${p.pieces.where((x) => x.isFinished).length}/${p.pieces.length}',
                 style: const TextStyle(fontWeight: FontWeight.w600, fontFeatures: [FontFeature.tabularFigures()]),
+              ),
               ),
             ],
           ),
