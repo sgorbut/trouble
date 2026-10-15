@@ -172,7 +172,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
       showDragHandle: true,
       builder: (context) => SafeArea(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 40),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [

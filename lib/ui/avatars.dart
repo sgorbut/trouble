@@ -57,13 +57,12 @@ String avatarName(String avatar) => avatarNames[avatar] ?? '';
 /// Имена для быстрого выбора на экране настройки партии.
 const List<String> quickNames = ['Сергей', 'Ирина', 'Лиза', 'Настя'];
 
-/// Аватар по умолчанию для цвета (у каждого цвета свой).
-String defaultAvatarFor(PlayerColor color) => switch (color) {
-  PlayerColor.red => '🦊',
-  PlayerColor.blue => '🐳',
-  PlayerColor.yellow => '🐝',
-  PlayerColor.green => '🐸',
-};
+/// Аватары по умолчанию на этот запуск: четыре разных, выбираются случайно один раз
+/// при старте приложения.
+final List<String> _launchAvatars = ([...presetAvatars]..shuffle()).take(4).toList();
+
+/// Аватар по умолчанию для цвета (у каждого цвета свой, меняется от запуска к запуску).
+String defaultAvatarFor(PlayerColor color) => _launchAvatars[color.index];
 
 /// Круглый аватар в цвете игрока.
 class PlayerAvatar extends StatelessWidget {
