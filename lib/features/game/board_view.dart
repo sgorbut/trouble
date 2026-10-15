@@ -282,11 +282,15 @@ class _Token extends StatelessWidget {
           clipBehavior: Clip.none,
           children: [
             Positioned.fill(child: token),
+            // Бледный значок со смещением от центра фишки вправо-вверх.
             Positioned(
-              right: -w * 0.25,
-              top: -w * 0.3,
+              right: -w * 0.05,
+              top: -w * 0.08,
               child: IgnorePointer(
-                child: Text('💥', style: TextStyle(fontSize: w * 0.55, height: 1.0)),
+                child: Opacity(
+                  opacity: 0.6,
+                  child: Text('💥', style: TextStyle(fontSize: w * 0.55, height: 1.0)),
+                ),
               ),
             ),
           ],
