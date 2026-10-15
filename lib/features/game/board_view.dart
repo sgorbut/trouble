@@ -208,6 +208,8 @@ class _BoardViewState extends ConsumerState<BoardView> with TickerProviderStateM
             selected: view.selected == r,
             interactive: movable,
             flying: fast,
+            // Эту фишку сбьёт выбранный ход.
+            targeted: view.selectedMove?.captured == r,
           ),
         ),
       ),
@@ -222,6 +224,7 @@ class _Token extends StatelessWidget {
     required this.selected,
     required this.interactive,
     required this.flying,
+    this.targeted = false,
   });
 
   final PlayerColor color;
@@ -230,9 +233,12 @@ class _Token extends StatelessWidget {
   final bool interactive;
   final bool flying;
 
+  /// Фишку сбьёт выбранный ход — на ней значок 💥.
+  final bool targeted;
+
   @override
   Widget build(BuildContext context) {
-    return MouseRegion(
+    final token = MouseRegion(
       cursor: interactive ? SystemMouseCursors.click : MouseCursor.defer,
       child: AnimatedScale(
         scale: flying ? 0.7 : (selected ? 1.12 : 1.0),
@@ -267,6 +273,25 @@ class _Token extends StatelessWidget {
           ),
         ),
       ),
+    );
+    if (!targeted) return token;
+    return LayoutBuilder(
+      builder: (context, box) {
+        final w = box.maxWidth;
+        return Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Positioned.fill(child: token),
+            Positioned(
+              right: -w * 0.25,
+              top: -w * 0.3,
+              child: IgnorePointer(
+                child: Text('💥', style: TextStyle(fontSize: w * 0.55, height: 1.0)),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }
