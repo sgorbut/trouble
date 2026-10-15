@@ -106,7 +106,7 @@ class StatsScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 20),
                   Text(
-                    'Бонусы — выпавшие шестёрки и остановки на клетке 🎁. '
+                    'Бонусы — выпавшие шестёрки и остановки на клетке 🎁.\n'
                     'Съедено — сбитые фишки соперников, смерти — свои сбитые фишки.',
                     style: theme.textTheme.bodySmall?.copyWith(color: Colors.black54),
                   ),

@@ -61,6 +61,16 @@ class _BoardViewState extends ConsumerState<BoardView> with TickerProviderStateM
             selectedMove.to,
             game.direction,
           );
+    // Бонусные клетки под фишками (по отображаемым позициям — цвет идёт вместе с фишкой).
+    final bonusCells = {
+      for (final i in bonusRingIndices(game.direction)) BoardGeometry.ringCell(i),
+    };
+    final bonusOccupants = <GridPos, PlayerColor>{};
+    for (final p in game.allPieces) {
+      final progress = view.display[PieceRef(p.owner, p.id)] ?? homeProgress;
+      final g = BoardGeometry.cellFor(p.owner, p.id, progress, game.direction);
+      if (bonusCells.contains(g)) bonusOccupants[g] = p.owner;
+    }
     // Клетки, которые пройдёт выбранная фишка: из дома — со стартовой клетки.
     final movePath = selectedMove == null
         ? const <GridPos>[]
@@ -97,6 +107,7 @@ class _BoardViewState extends ConsumerState<BoardView> with TickerProviderStateM
                   activePlayer: game.phase == GamePhase.finished ? null : current,
                   showActivePath: view.lottery == null,
                   movePath: movePath,
+                  bonusOccupants: bonusOccupants,
                   destination: destCell,
                   destinationColor: current,
                 ),

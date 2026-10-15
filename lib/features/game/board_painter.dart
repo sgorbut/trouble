@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/constants.dart';
@@ -16,6 +17,7 @@ class BoardPainter extends CustomPainter {
     this.activePlayer,
     this.showActivePath = true,
     this.movePath = const [],
+    this.bonusOccupants = const {},
     this.destination,
     this.destinationColor,
   }) : super(repaint: pulse);
@@ -34,6 +36,10 @@ class BoardPainter extends CustomPainter {
 
   /// Клетки, по которым пройдёт выбранная фишка (до клетки назначения включительно).
   final List<GridPos> movePath;
+
+  /// Бонусные клетки, на которых стоят фишки, и цвет хозяина фишки: иконку 🎁 фишка
+  /// закрывает, поэтому такая клетка окрашивается цветом дома игрока.
+  final Map<GridPos, PlayerColor> bonusOccupants;
   final GridPos? destination;
   final PlayerColor? destinationColor;
 
@@ -82,7 +88,17 @@ class BoardPainter extends CustomPainter {
     for (var i = 0; i < ringLength; i++) {
       final g = BoardGeometry.ringCell(i);
       final rr = cellShape(g);
-      canvas.drawRRect(rr, Paint()..color = Colors.white);
+      final occupant = bonus.contains(i) ? bonusOccupants[g] : null;
+      canvas.drawRRect(
+        rr,
+        Paint()
+          ..color = occupant == null
+              ? Colors.white
+              : Color.alphaBlend(
+                  occupant.color.withValues(alpha: 0.45),
+                  AppTheme.boardBackground,
+                ),
+      );
       canvas.drawRRect(rr, border);
       if (bonus.contains(i)) {
         _drawEmoji(canvas, '🎁', rr.center, cell * 0.4, opacity: 0.35);
@@ -240,6 +256,7 @@ class BoardPainter extends CustomPainter {
       old.activePlayer != activePlayer ||
       old.showActivePath != showActivePath ||
       !_samePath(old.movePath, movePath) ||
+      !mapEquals(old.bonusOccupants, bonusOccupants) ||
       old.destination != destination ||
       old.destinationColor != destinationColor;
 
