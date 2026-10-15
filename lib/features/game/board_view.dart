@@ -247,7 +247,7 @@ class _Token extends StatelessWidget {
               stops: const [0.0, 0.5, 1.0],
             ),
             border: Border.all(
-              color: selected ? Colors.white : color.dark,
+              color: color.dark, // у выбранной — толще, цветом круга конца хода
               width: selected ? 3 : 1.5,
             ),
             boxShadow: [
