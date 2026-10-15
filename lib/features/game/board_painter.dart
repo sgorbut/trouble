@@ -160,7 +160,7 @@ class BoardPainter extends CustomPainter {
     final dest = destination;
     if (dest != null) {
       final r = rectOf(dest);
-      final stroke = cell * 0.07;
+      final stroke = cell * 0.035;
       final radius = cell * (ring.contains(dest) ? 0.78 : 0.6) / 2 - stroke / 2;
       final color = destinationColor?.dark ?? Colors.black;
       canvas.drawCircle(
