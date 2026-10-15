@@ -155,26 +155,36 @@ class BoardPainter extends CustomPainter {
     // Путь текущего игрока: обводка клеток и линия через них — поверх клеток, под фишками.
     if (player != null && showActivePath) _drawActivePath(canvas, player, cell, cellShape);
 
-    // Клетка назначения выбранной фишки: круг размером с фишку (на кольце 0,78 клетки,
-    // в финише 0,6 — как в BoardView), рамка целиком внутри этого размера.
+    // Клетка назначения выбранной фишки: бледный «призрак» фишки того же размера
+    // (на кольце 0,78 клетки, в финише 0,6 — как в BoardView), без анимации.
     final dest = destination;
-    if (dest != null) {
-      final r = rectOf(dest);
-      final stroke = cell * 0.035;
-      final radius = cell * (ring.contains(dest) ? 0.78 : 0.6) / 2 - stroke / 2;
-      final color = destinationColor?.dark ?? Colors.black;
+    final destColor = destinationColor;
+    if (dest != null && destColor != null) {
+      final c = rectOf(dest).center;
+      final radius = cell * (ring.contains(dest) ? 0.78 : 0.6) / 2;
+      const alpha = 0.4;
       canvas.drawCircle(
-        r.center,
-        radius,
-        Paint()..color = color.withValues(alpha: 0.15 + 0.15 * pulse.value),
-      );
-      canvas.drawCircle(
-        r.center,
+        c,
         radius,
         Paint()
+          ..shader = RadialGradient(
+            center: const Alignment(-0.35, -0.4),
+            radius: 0.95,
+            colors: [
+              Color.lerp(destColor.color, Colors.white, 0.65)!.withValues(alpha: alpha),
+              destColor.color.withValues(alpha: alpha),
+              destColor.dark.withValues(alpha: alpha),
+            ],
+            stops: const [0.0, 0.5, 1.0],
+          ).createShader(Rect.fromCircle(center: c, radius: radius)),
+      );
+      canvas.drawCircle(
+        c,
+        radius - 0.75,
+        Paint()
           ..style = PaintingStyle.stroke
-          ..strokeWidth = stroke
-          ..color = color,
+          ..strokeWidth = 1.5
+          ..color = destColor.dark.withValues(alpha: alpha),
       );
     }
   }
