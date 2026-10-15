@@ -229,7 +229,9 @@ class BoardPainter extends CustomPainter {
       ),
       textDirection: TextDirection.ltr,
     )..layout();
-    final topLeft = c - Offset(tp.width / 2, tp.height / 2);
+    // Глиф эмодзи сидит в строке выше её середины — сдвиг вниз, чтобы он был по центру
+    // (так же, как 🎲 на кубике).
+    final topLeft = c - Offset(tp.width / 2, tp.height / 2) + Offset(0, size * 0.09);
     if (opacity < 1) {
       // Глиф эмодзи выше строки текста (height: 1.0) — слой с запасом, иначе верх обрезается.
       final layer = (topLeft & tp.size).inflate(size * 0.5);
