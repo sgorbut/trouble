@@ -55,7 +55,7 @@ const Map<String, String> avatarNames = {
 String avatarName(String avatar) => avatarNames[avatar] ?? '';
 
 /// Имена для быстрого выбора на экране настройки партии.
-const List<String> quickNames = ['Сергей', 'Ирина', 'Лиза', 'Настя'];
+const List<String> quickNames = [];
 
 /// Аватары по умолчанию на этот запуск: четыре разных, выбираются случайно один раз
 /// при старте приложения.
