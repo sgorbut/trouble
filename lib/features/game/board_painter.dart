@@ -38,7 +38,7 @@ class BoardPainter extends CustomPainter {
   final List<GridPos> movePath;
 
   /// Бонусные клетки, на которых стоят фишки, и цвет хозяина фишки: иконку 🎁 фишка
-  /// закрывает, поэтому такая клетка окрашивается цветом дома игрока.
+  /// закрывает, поэтому такая клетка окрашивается бледным цветом дома игрока.
   final Map<GridPos, PlayerColor> bonusOccupants;
   final GridPos? destination;
   final PlayerColor? destinationColor;
@@ -95,7 +95,7 @@ class BoardPainter extends CustomPainter {
           ..color = occupant == null
               ? Colors.white
               : Color.alphaBlend(
-                  occupant.color.withValues(alpha: 0.45),
+                  occupant.color.withValues(alpha: 0.18),
                   AppTheme.boardBackground,
                 ),
       );
