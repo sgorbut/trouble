@@ -268,7 +268,9 @@ class _PipsPainter extends CustomPainter {
         text: TextSpan(text: '🎲', style: TextStyle(fontSize: size.width * 0.78, height: 1.0)),
         textDirection: TextDirection.ltr,
       )..layout();
-      tp.paint(canvas, size.center(Offset.zero) - Offset(tp.width / 2, tp.height / 2));
+      // Глиф эмодзи сидит в строке выше её середины — сдвиг вниз, чтобы он был по центру грани.
+      final drop = Offset(0, size.width * 0.07);
+      tp.paint(canvas, size.center(Offset.zero) - Offset(tp.width / 2, tp.height / 2) + drop);
       return;
     }
     final paint = Paint()..color = const Color(0xFF263238);
