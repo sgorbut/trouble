@@ -155,22 +155,25 @@ class BoardPainter extends CustomPainter {
     // Путь текущего игрока: обводка клеток и линия через них — поверх клеток, под фишками.
     if (player != null && showActivePath) _drawActivePath(canvas, player, cell, cellShape);
 
-    // Клетка назначения выбранной фишки.
+    // Клетка назначения выбранной фишки: круг размером с фишку (на кольце 0,78 клетки,
+    // в финише 0,6 — как в BoardView), рамка целиком внутри этого размера.
     final dest = destination;
     if (dest != null) {
-      final r = rectOf(dest, cell * 0.08);
+      final r = rectOf(dest);
+      final stroke = cell * 0.07;
+      final radius = cell * (ring.contains(dest) ? 0.78 : 0.6) / 2 - stroke / 2;
       final color = destinationColor?.dark ?? Colors.black;
       canvas.drawCircle(
         r.center,
-        cell * 0.42,
+        radius,
         Paint()..color = color.withValues(alpha: 0.15 + 0.15 * pulse.value),
       );
       canvas.drawCircle(
         r.center,
-        cell * 0.42,
+        radius,
         Paint()
           ..style = PaintingStyle.stroke
-          ..strokeWidth = cell * 0.07
+          ..strokeWidth = stroke
           ..color = color,
       );
     }
