@@ -241,8 +241,8 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
   /// игроков; ширина как у квадрата цветов, чтобы блоки стояли в одну колонку.
   Widget _typePicker(_Slot slot) {
     final c = slot.color;
-    const width = _dotSize * 2 + _dotGap;
-    const radius = Radius.circular(16);
+    const width = _pickerWidth;
+    const radius = Radius.circular(_pickerRadius);
     Widget row(PlayerType type, IconData icon, String tooltip, BorderRadius shape) {
       final selected = slot.type == type;
       return Tooltip(
@@ -254,7 +254,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
             onTap: () => setState(() => slot.type = type),
             borderRadius: shape,
             child: SizedBox(
-              height: 32,
+              height: _cellHeight,
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -295,31 +295,53 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
     );
   }
 
-  static const _dotSize = 32.0;
-  static const _dotGap = 6.0;
+  /// Общие размеры блоков выбора цвета и человек/бот.
+  static const _pickerWidth = 72.0;
+  static const _pickerRadius = 16.0;
+  static const _cellHeight = 32.0;
 
-  /// Выбор цвета квадратом 2×2 — как дома на поле: красный и синий сверху,
-  /// зелёный и жёлтый снизу.
+  /// Выбор цвета — скруглённый квадрат из 4 секций, как дома на поле: красный и синий
+  /// сверху, зелёный и жёлтый снизу. Рамка и размер — как у выбора человек/бот.
   Widget _colorPicker(_Slot slot) {
-    Widget row(PlayerColor left, PlayerColor right) => Row(
-      mainAxisSize: MainAxisSize.min,
+    final outline = Theme.of(context).colorScheme.outline;
+    const r = Radius.circular(_pickerRadius);
+    Widget row(PlayerColor left, PlayerColor right, BorderRadius l, BorderRadius rr) => Row(
       children: [
-        _colorDot(slot, left),
-        const SizedBox(width: _dotGap),
-        _colorDot(slot, right),
+        Expanded(child: _colorCell(slot, left, l)),
+        Container(width: 1, height: _cellHeight, color: outline),
+        Expanded(child: _colorCell(slot, right, rr)),
       ],
     );
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        row(PlayerColor.red, PlayerColor.blue),
-        const SizedBox(height: 6),
-        row(PlayerColor.green, PlayerColor.yellow),
-      ],
+    return Container(
+      width: _pickerWidth,
+      decoration: BoxDecoration(
+        border: Border.all(color: outline),
+        borderRadius: const BorderRadius.all(r),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          row(
+            PlayerColor.red,
+            PlayerColor.blue,
+            const BorderRadius.only(topLeft: r),
+            const BorderRadius.only(topRight: r),
+          ),
+          Divider(height: 1, thickness: 1, color: outline),
+          row(
+            PlayerColor.green,
+            PlayerColor.yellow,
+            const BorderRadius.only(bottomLeft: r),
+            const BorderRadius.only(bottomRight: r),
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _colorDot(_Slot slot, PlayerColor color) {
+  /// Секция цвета: выбранный — насыщенный с галочкой, занятый другим игроком —
+  /// бледный с его номером (нажатие меняет игроков цветами), свободный — посередине.
+  Widget _colorCell(_Slot slot, PlayerColor color, BorderRadius shape) {
     final selected = slot.color == color;
     final owner = _slots.indexWhere((s) => s.color == color);
     final takenByOther = !selected && owner < _count;
@@ -327,30 +349,25 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
       message: takenByOther
           ? '${color.displayName} — у игрока ${owner + 1}, поменяться'
           : color.displayName,
-      child: InkResponse(
-        onTap: () => _setColor(slot, color),
-        radius: 24,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          width: _dotSize,
-          height: _dotSize,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: color.color.withValues(alpha: takenByOther ? 0.35 : 1),
-            border: Border.all(color: selected ? color.dark : Colors.transparent, width: 3),
-            boxShadow: [
-              if (selected) BoxShadow(color: color.color.withValues(alpha: 0.5), blurRadius: 8),
-            ],
+      child: Material(
+        color: color.color.withValues(alpha: selected ? 1 : (takenByOther ? 0.25 : 0.55)),
+        borderRadius: shape,
+        child: InkWell(
+          onTap: () => _setColor(slot, color),
+          borderRadius: shape,
+          child: SizedBox(
+            height: _cellHeight,
+            child: Center(
+              child: selected
+                  ? Icon(Icons.check, size: 18, color: color.onColor)
+                  : takenByOther
+                  ? Text(
+                      '${owner + 1}',
+                      style: TextStyle(color: color.dark, fontWeight: FontWeight.bold),
+                    )
+                  : null,
+            ),
           ),
-          child: selected
-              ? Icon(Icons.check, size: 18, color: color.onColor)
-              : takenByOther
-              ? Text(
-                  '${owner + 1}',
-                  style: TextStyle(color: color.dark, fontWeight: FontWeight.bold),
-                )
-              : null,
         ),
       ),
     );
