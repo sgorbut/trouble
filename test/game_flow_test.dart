@@ -7,6 +7,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:trouble_game/core/constants.dart';
 import 'package:trouble_game/core/game/engine.dart';
 import 'package:trouble_game/core/game/models.dart';
+import 'package:trouble_game/core/game/board_geometry.dart';
+import 'package:trouble_game/features/game/board_view.dart';
 import 'package:trouble_game/features/game/game_controller.dart';
 import 'package:trouble_game/features/game/game_screen.dart';
 import 'package:trouble_game/features/win/win_screen.dart';
@@ -173,6 +175,49 @@ void main() {
     expect(view().game.currentPlayer.color, PlayerColor.yellow);
     expect(view().game.phase, GamePhase.waitingForRoll);
     expect(view().notice, 'Первым ходит Боря');
+    ctrl.stop();
+  });
+
+  testWidgets('тап по клетке пути не делает ход, а снимает выбор фишки', (tester) async {
+    SharedPreferences.setMockInitialValues({'soundEnabled': false, 'vibrationEnabled': false});
+    final container = ProviderContainer(
+      overrides: [randomProvider.overrideWithValue(Random(5))],
+    );
+    addTearDown(container.dispose);
+    const side = 450.0;
+    await tester.pumpWidget(UncontrolledProviderScope(
+      container: container,
+      child: const MaterialApp(
+        home: Scaffold(body: Align(alignment: Alignment.topLeft, child: BoardView(side: side))),
+      ),
+    ));
+
+    final ctrl = container.read(gameControllerProvider.notifier);
+    ctrl.start(const [
+      PlayerConfig(color: PlayerColor.red, type: PlayerType.human, name: 'Красный'),
+      PlayerConfig(color: PlayerColor.yellow, type: PlayerType.bot, name: 'Бот'),
+    ], lottery: false);
+    ctrl.roll();
+    await tester.pump(const Duration(seconds: 1));
+    final view = container.read(gameControllerProvider)!;
+    expect(view.legalMoves.length, greaterThan(1), reason: 'нужен выбор из нескольких фишек');
+    final move = view.legalMoves.first;
+    ctrl.tapPiece(move.piece);
+    await tester.pump();
+    expect(container.read(gameControllerProvider)!.selected, move.piece);
+
+    // Клетка пути до назначения (или, если ход на 1, любая другая пустая клетка кольца).
+    final dir = view.game.direction;
+    final cell = side / gridSize;
+    final target = move.to > 0
+        ? BoardGeometry.cellFor(move.piece.owner, 0, 0, dir)
+        : BoardGeometry.ringCell(10);
+    await tester.tapAt(Offset((target.col + 0.5) * cell, (target.row + 0.5) * cell));
+    await tester.pump();
+
+    final after = container.read(gameControllerProvider)!;
+    expect(after.game.pieceOf(move.piece).progress, homeProgress, reason: 'ход не сделан');
+    expect(after.selected, isNull, reason: 'выбор снят');
     ctrl.stop();
   });
 }

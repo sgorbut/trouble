@@ -103,7 +103,9 @@ class _BoardViewState extends ConsumerState<BoardView> with TickerProviderStateM
           Positioned.fill(
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
-              onTap: destCell == null ? null : () => controller.confirmSelected(),
+              // Ход — только по фишке или по клетке назначения (отдельный слой сверху); тап по любой
+              // другой клетке, в том числе по клеткам пути, снимает выбор фишки.
+              onTap: destCell == null ? null : controller.clearSelection,
               child: CustomPaint(
                 painter: BoardPainter(
                   pulse: _pulse,

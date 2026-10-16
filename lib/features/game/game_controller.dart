@@ -320,6 +320,13 @@ class GameController extends Notifier<GameViewState?> {
 
   /// Нажатие на фишку. Один допустимый ход — выполняется сразу; иначе первое нажатие
   /// выбирает фишку и показывает клетку назначения, повторное — ходит.
+  /// Снять выбор фишки (тап мимо фишки и клетки назначения).
+  void clearSelection() {
+    final s = state;
+    if (s == null || s.selected == null) return;
+    state = s.copyWith(selected: () => null);
+  }
+
   void tapPiece(PieceRef piece) {
     final s = state;
     if (s == null ||
