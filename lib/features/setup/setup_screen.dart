@@ -238,40 +238,40 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
   }
 
   /// Выбор цвета: четыре кружка; занятый другим игроком цвет помечен его номером.
-  /// Человек или бот — две кнопки-иконки, по ширине как квадрат цветов.
+  /// Человек или бот — две строки «иконка + галочка», галочка у выбранного.
   Widget _typePicker(_Slot slot) {
     final c = slot.color;
-    Widget button(PlayerType type, IconData icon, String tooltip) {
+    Widget row(PlayerType type, IconData icon, String tooltip) {
       final selected = slot.type == type;
       return Tooltip(
         message: tooltip,
-        child: InkResponse(
+        child: InkWell(
           onTap: () => setState(() => slot.type = type),
-          radius: 20,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 180),
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color: selected ? c.color.withValues(alpha: 0.25) : Colors.transparent,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(
-                color: selected ? c.dark : Colors.black26,
-                width: selected ? 2 : 1,
-              ),
+          borderRadius: BorderRadius.circular(8),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, size: 24, color: selected ? c.dark : Colors.black38),
+                const SizedBox(width: 4),
+                SizedBox(
+                  width: 20,
+                  child: selected ? Icon(Icons.check, size: 20, color: c.dark) : null,
+                ),
+              ],
             ),
-            child: Icon(icon, size: 20, color: selected ? c.dark : Colors.black45),
           ),
         ),
       );
     }
 
-    return Row(
+    return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        button(PlayerType.human, Icons.person, 'Человек'),
-        const SizedBox(width: 6),
-        button(PlayerType.bot, Icons.smart_toy_outlined, 'Бот'),
+        row(PlayerType.human, Icons.person, 'Человек'),
+        const SizedBox(height: 4),
+        row(PlayerType.bot, Icons.smart_toy_outlined, 'Бот'),
       ],
     );
   }
@@ -391,15 +391,19 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                   ),
                 ),
                 const SizedBox(width: 24),
-                // Цвет (квадрат 2×2) и под ним человек/бот.
-                Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [_colorPicker(slot), const SizedBox(height: 16), _typePicker(slot)],
-                ),
+                _colorPicker(slot),
               ],
             ),
             const SizedBox(height: 10),
-            _quickNames(slot),
+            // Быстрые имена и в правом нижнем углу — человек/бот.
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Expanded(child: _quickNames(slot)),
+                const SizedBox(width: 16),
+                _typePicker(slot),
+              ],
+            ),
           ],
         ),
       ),
