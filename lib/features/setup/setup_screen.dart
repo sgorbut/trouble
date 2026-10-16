@@ -223,7 +223,17 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
             ...quickNames,
           }.where((n) => n.isNotEmpty))
             ChoiceChip(
-              label: Text(name),
+              // Одинаковая ширина — имена стоят как по сетке; влезает 9 букв («Обезьянка»).
+              label: SizedBox(
+                width: _nameChipWidth,
+                child: Text(
+                  name,
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              showCheckmark: false,
               visualDensity: VisualDensity.compact,
               selected: value.text.trim() == name,
               onSelected: (_) {
@@ -240,7 +250,8 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
   /// Человек или бот — две строки «иконка + галочка» в общей рамке, как у выбора числа
   /// игроков; ширина как у квадрата цветов, чтобы блоки стояли в одну колонку.
   Widget _typePicker(_Slot slot) {
-    final c = slot.color;
+    // Выбранная строка — светло-серым фоном, как выбранное имя, без цвета игрока.
+    final selectedFill = Theme.of(context).colorScheme.secondaryContainer;
     const width = _pickerWidth;
     const radius = Radius.circular(_pickerRadius);
     Widget row(PlayerType type, IconData icon, String tooltip, BorderRadius shape) {
@@ -248,7 +259,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
       return Tooltip(
         message: tooltip,
         child: Material(
-          color: selected ? c.color.withValues(alpha: 0.2) : Colors.transparent,
+          color: selected ? selectedFill : Colors.transparent,
           borderRadius: shape,
           child: InkWell(
             onTap: () => setState(() => slot.type = type),
@@ -258,11 +269,13 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(icon, size: 20, color: selected ? c.dark : Colors.black38),
+                  Icon(icon, size: 20, color: selected ? Colors.black87 : Colors.black38),
                   const SizedBox(width: 4),
                   SizedBox(
                     width: 18,
-                    child: selected ? Icon(Icons.check, size: 18, color: c.dark) : null,
+                    child: selected
+                        ? const Icon(Icons.check, size: 18, color: Colors.black87)
+                        : null,
                   ),
                 ],
               ),
@@ -294,6 +307,9 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
       ),
     );
   }
+
+  /// Ширина подписи в кнопке быстрого имени.
+  static const _nameChipWidth = 78.0;
 
   /// Общие размеры блоков выбора цвета и человек/бот.
   static const _pickerWidth = 72.0;
@@ -359,7 +375,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
             height: _cellHeight,
             child: Center(
               child: selected
-                  ? Icon(Icons.check, size: 18, color: color.onColor)
+                  ? Icon(Icons.check_circle_outline, size: 22, color: color.onColor)
                   : takenByOther
                   ? Text(
                       '${owner + 1}',
