@@ -9,11 +9,11 @@ extension PlayerColorX on PlayerColor {
   int get startIndex => index * ringLength ~/ 4;
 
   String get displayName => switch (this) {
-        PlayerColor.red => 'Красный',
-        PlayerColor.blue => 'Синий',
-        PlayerColor.yellow => 'Жёлтый',
-        PlayerColor.green => 'Зелёный',
-      };
+    PlayerColor.red => 'Красный',
+    PlayerColor.blue => 'Синий',
+    PlayerColor.yellow => 'Жёлтый',
+    PlayerColor.green => 'Зелёный',
+  };
 }
 
 enum PlayerType { human, bot }
@@ -31,9 +31,9 @@ extension MoveDirectionX on MoveDirection {
 
 /// Абсолютные индексы бонусных клеток кольца при данном направлении движения.
 Set<int> bonusRingIndices(MoveDirection direction) => {
-      for (final c in PlayerColor.values)
-        (c.startIndex + direction.sign * bonusOffsetFromCorner) % ringLength,
-    };
+  for (final c in PlayerColor.values)
+    (c.startIndex + direction.sign * bonusOffsetFromCorner) % ringLength,
+};
 
 /// Абсолютный индекс клетки кольца для фишки [owner] с данным progress (0..31).
 int ringIndexFor(PlayerColor owner, int progress, MoveDirection direction) =>
@@ -43,11 +43,16 @@ enum GamePhase { waitingForRoll, waitingForMove, animating, finished }
 
 /// Фишка. progress: -1 дом; 0..31 кольцо; 32..35 финишные лунки.
 class Piece {
-  const Piece({required this.owner, required this.id, this.progress = homeProgress});
+  const Piece({required this.owner, required this.id, this.progress = homeProgress, int? homeSlot})
+    : homeSlot = homeSlot ?? id;
 
   final PlayerColor owner;
   final int id;
   final int progress;
+
+  /// Лунка дома, в которой стоит фишка, пока она дома. В начале партии — по номеру
+  /// фишки; сбитая фишка встаёт в самую дальнюю от центра свободную лунку.
+  final int homeSlot;
 
   bool get isHome => progress == homeProgress;
   bool get isOnRing => progress >= 0 && progress < ringPathLength;
@@ -57,15 +62,23 @@ class Piece {
   int? ringIndex(MoveDirection direction) =>
       isOnRing ? ringIndexFor(owner, progress, direction) : null;
 
-  Piece copyWith({int? progress}) =>
-      Piece(owner: owner, id: id, progress: progress ?? this.progress);
+  Piece copyWith({int? progress, int? homeSlot}) => Piece(
+    owner: owner,
+    id: id,
+    progress: progress ?? this.progress,
+    homeSlot: homeSlot ?? this.homeSlot,
+  );
 
   @override
   bool operator ==(Object other) =>
-      other is Piece && other.owner == owner && other.id == id && other.progress == progress;
+      other is Piece &&
+      other.owner == owner &&
+      other.id == id &&
+      other.progress == progress &&
+      other.homeSlot == homeSlot;
 
   @override
-  int get hashCode => Object.hash(owner, id, progress);
+  int get hashCode => Object.hash(owner, id, progress, homeSlot);
 
   @override
   String toString() => 'Piece(${owner.name}#$id @ $progress)';
@@ -105,24 +118,19 @@ class Player {
   bool get allFinished => pieces.every((p) => p.isFinished);
 
   Player copyWith({List<Piece>? pieces, PlayerStats? stats}) => Player(
-        color: color,
-        type: type,
-        name: name,
-        avatar: avatar,
-        pieces: pieces ?? this.pieces,
-        stats: stats ?? this.stats,
-      );
+    color: color,
+    type: type,
+    name: name,
+    avatar: avatar,
+    pieces: pieces ?? this.pieces,
+    stats: stats ?? this.stats,
+  );
 }
 
 /// Статистика игрока за партию. Хранится в [GameState], поэтому отмена хода
 /// откатывает и её.
 class PlayerStats {
-  const PlayerStats({
-    this.cells = 0,
-    this.bonuses = 0,
-    this.captures = 0,
-    this.deaths = 0,
-  });
+  const PlayerStats({this.cells = 0, this.bonuses = 0, this.captures = 0, this.deaths = 0});
 
   /// Клеток пройдено фишками (выход из дома на старт — тоже шаг).
   final int cells;
@@ -137,11 +145,11 @@ class PlayerStats {
   final int deaths;
 
   PlayerStats copyWith({int? cells, int? bonuses, int? captures, int? deaths}) => PlayerStats(
-        cells: cells ?? this.cells,
-        bonuses: bonuses ?? this.bonuses,
-        captures: captures ?? this.captures,
-        deaths: deaths ?? this.deaths,
-      );
+    cells: cells ?? this.cells,
+    bonuses: bonuses ?? this.bonuses,
+    captures: captures ?? this.captures,
+    deaths: deaths ?? this.deaths,
+  );
 }
 
 /// Ссылка на фишку конкретного игрока.
@@ -222,14 +230,13 @@ class GameState {
     GamePhase? phase,
     bool? extraTurn,
     PlayerColor? Function()? winner,
-  }) =>
-      GameState(
-        players: players ?? this.players,
-        direction: direction,
-        currentPlayerIndex: currentPlayerIndex ?? this.currentPlayerIndex,
-        diceValue: diceValue != null ? diceValue() : this.diceValue,
-        phase: phase ?? this.phase,
-        extraTurn: extraTurn ?? this.extraTurn,
-        winner: winner != null ? winner() : this.winner,
-      );
+  }) => GameState(
+    players: players ?? this.players,
+    direction: direction,
+    currentPlayerIndex: currentPlayerIndex ?? this.currentPlayerIndex,
+    diceValue: diceValue != null ? diceValue() : this.diceValue,
+    phase: phase ?? this.phase,
+    extraTurn: extraTurn ?? this.extraTurn,
+    winner: winner != null ? winner() : this.winner,
+  );
 }

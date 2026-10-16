@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/constants.dart';
 import '../../core/game/board_geometry.dart';
+import '../../core/game/engine.dart';
 import '../../core/game/models.dart';
 import '../../ui/theme.dart';
 import '../settings/settings_provider.dart';
@@ -181,7 +182,14 @@ class _BoardViewState extends ConsumerState<BoardView> with TickerProviderStateM
     required VoidCallback onTap,
   }) {
     final progress = view.display[r] ?? homeProgress;
-    final pos = BoardGeometry.cellFor(r.owner, r.id, progress, view.game.direction);
+    // Дома фишка стоит в своей лунке; сбитая, пока летит домой, — в той, куда встанет.
+    final piece = view.game.pieceOf(r);
+    final slot = progress != homeProgress
+        ? r.id
+        : piece.isHome
+        ? piece.homeSlot
+        : GameEngine.returnSlot(view.game, r.owner);
+    final pos = BoardGeometry.cellFor(r.owner, slot, progress, view.game.direction);
     // В финише клетки меньше (стоят внутри зоны дома) — фишка тоже меньше, чтобы не
     // выходить за края клетки.
     final size = cell * (progress >= finishStartProgress ? 0.6 : 0.78);

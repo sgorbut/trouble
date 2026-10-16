@@ -34,30 +34,39 @@ class BoardGeometry {
   /// Сторона квадратной зоны дома в клетках.
   static const int homeZoneSize = 3;
 
-  /// Лунки дома (по id фишки): три в ряд вдоль внутреннего края зоны дома,
+  /// Номера лунок дома от самой дальней от центра поля к ближней.
+  static List<int> homeSlotsFarFirst(PlayerColor color, MoveDirection direction) {
+    final holes = homeHoles(color, direction);
+    const c = (gridSize - 1) / 2;
+    double dist(GridPos g) => (g.row - c) * (g.row - c) + (g.col - c) * (g.col - c);
+    return [for (var i = 0; i < holes.length; i++) i]
+      ..sort((a, b) => dist(holes[b]).compareTo(dist(holes[a])));
+  }
+
+  /// Лунки дома (по номеру лунки): три в ряд вдоль внутреннего края зоны дома,
   /// параллельно финишной дорожке — всё помещается в цветной квадрат 3×3.
   static List<GridPos> homeHoles(PlayerColor color, MoveDirection direction) =>
       direction == MoveDirection.counterclockwise
-          ? switch (color) {
-              PlayerColor.red => const [GridPos(1, 3), GridPos(2, 3), GridPos(3, 3)],
-              PlayerColor.blue => const [GridPos(3, 7), GridPos(3, 6), GridPos(3, 5)],
-              PlayerColor.yellow => const [GridPos(7, 5), GridPos(6, 5), GridPos(5, 5)],
-              PlayerColor.green => const [GridPos(5, 1), GridPos(5, 2), GridPos(5, 3)],
-            }
-          : switch (color) {
-              PlayerColor.red => const [GridPos(3, 1), GridPos(3, 2), GridPos(3, 3)],
-              PlayerColor.blue => const [GridPos(1, 5), GridPos(2, 5), GridPos(3, 5)],
-              PlayerColor.yellow => const [GridPos(5, 7), GridPos(5, 6), GridPos(5, 5)],
-              PlayerColor.green => const [GridPos(7, 3), GridPos(6, 3), GridPos(5, 3)],
-            };
+      ? switch (color) {
+          PlayerColor.red => const [GridPos(1, 3), GridPos(2, 3), GridPos(3, 3)],
+          PlayerColor.blue => const [GridPos(3, 7), GridPos(3, 6), GridPos(3, 5)],
+          PlayerColor.yellow => const [GridPos(7, 5), GridPos(6, 5), GridPos(5, 5)],
+          PlayerColor.green => const [GridPos(5, 1), GridPos(5, 2), GridPos(5, 3)],
+        }
+      : switch (color) {
+          PlayerColor.red => const [GridPos(3, 1), GridPos(3, 2), GridPos(3, 3)],
+          PlayerColor.blue => const [GridPos(1, 5), GridPos(2, 5), GridPos(3, 5)],
+          PlayerColor.yellow => const [GridPos(5, 7), GridPos(5, 6), GridPos(5, 5)],
+          PlayerColor.green => const [GridPos(7, 3), GridPos(6, 3), GridPos(5, 3)],
+        };
 
   /// Зона дома: левый верхний угол квадрата [homeZoneSize]×[homeZoneSize].
   static GridPos homeZoneOrigin(PlayerColor color) => switch (color) {
-        PlayerColor.red => const GridPos(1, 1),
-        PlayerColor.blue => const GridPos(1, 5),
-        PlayerColor.yellow => const GridPos(5, 5),
-        PlayerColor.green => const GridPos(5, 1),
-      };
+    PlayerColor.red => const GridPos(1, 1),
+    PlayerColor.blue => const GridPos(1, 5),
+    PlayerColor.yellow => const GridPos(5, 5),
+    PlayerColor.green => const GridPos(5, 1),
+  };
 
   /// Финишные клетки, progress 32 → 34 (от ближней к дальней).
   ///
@@ -65,24 +74,25 @@ class BoardGeometry {
   /// (фишка делает почти полный круг) и идёт вдоль края зоны дома, внутри неё.
   static List<GridPos> finishCells(PlayerColor color, MoveDirection direction) =>
       direction == MoveDirection.counterclockwise
-          ? switch (color) {
-              PlayerColor.red => const [GridPos(1, 1), GridPos(2, 1), GridPos(3, 1)],
-              PlayerColor.blue => const [GridPos(1, 7), GridPos(1, 6), GridPos(1, 5)],
-              PlayerColor.yellow => const [GridPos(7, 7), GridPos(6, 7), GridPos(5, 7)],
-              PlayerColor.green => const [GridPos(7, 1), GridPos(7, 2), GridPos(7, 3)],
-            }
-          : switch (color) {
-              PlayerColor.red => const [GridPos(1, 1), GridPos(1, 2), GridPos(1, 3)],
-              PlayerColor.blue => const [GridPos(1, 7), GridPos(2, 7), GridPos(3, 7)],
-              PlayerColor.yellow => const [GridPos(7, 7), GridPos(7, 6), GridPos(7, 5)],
-              PlayerColor.green => const [GridPos(7, 1), GridPos(6, 1), GridPos(5, 1)],
-            };
+      ? switch (color) {
+          PlayerColor.red => const [GridPos(1, 1), GridPos(2, 1), GridPos(3, 1)],
+          PlayerColor.blue => const [GridPos(1, 7), GridPos(1, 6), GridPos(1, 5)],
+          PlayerColor.yellow => const [GridPos(7, 7), GridPos(6, 7), GridPos(5, 7)],
+          PlayerColor.green => const [GridPos(7, 1), GridPos(7, 2), GridPos(7, 3)],
+        }
+      : switch (color) {
+          PlayerColor.red => const [GridPos(1, 1), GridPos(1, 2), GridPos(1, 3)],
+          PlayerColor.blue => const [GridPos(1, 7), GridPos(2, 7), GridPos(3, 7)],
+          PlayerColor.yellow => const [GridPos(7, 7), GridPos(7, 6), GridPos(7, 5)],
+          PlayerColor.green => const [GridPos(7, 1), GridPos(6, 1), GridPos(5, 1)],
+        };
 
   static GridPos startCell(PlayerColor color) => ringCell(color.startIndex);
 
   /// Клетка, на которой стоит фишка с данным progress.
-  static GridPos cellFor(PlayerColor owner, int pieceId, int progress, MoveDirection direction) {
-    if (progress == homeProgress) return homeHoles(owner, direction)[pieceId];
+  /// Дома [homeSlot] — номер лунки ([Piece.homeSlot]); на поле не важен.
+  static GridPos cellFor(PlayerColor owner, int homeSlot, int progress, MoveDirection direction) {
+    if (progress == homeProgress) return homeHoles(owner, direction)[homeSlot];
     if (progress < ringPathLength) {
       return ringCell(ringIndexFor(owner, progress, direction));
     }

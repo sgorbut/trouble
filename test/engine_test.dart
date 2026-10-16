@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:trouble_game/core/constants.dart';
+import 'package:trouble_game/core/game/board_geometry.dart';
 import 'package:trouble_game/core/game/bot.dart';
 import 'package:trouble_game/core/game/engine.dart';
 import 'package:trouble_game/core/game/models.dart';
@@ -23,11 +24,11 @@ GameState makeState({
   MoveDirection direction = cw,
 }) {
   Player p(PlayerColor c, List<int> pos) => Player(
-        color: c,
-        type: PlayerType.human,
-        name: c.displayName,
-        pieces: [for (var i = 0; i < pos.length; i++) Piece(owner: c, id: i, progress: pos[i])],
-      );
+    color: c,
+    type: PlayerType.human,
+    name: c.displayName,
+    pieces: [for (var i = 0; i < pos.length; i++) Piece(owner: c, id: i, progress: pos[i])],
+  );
   return GameState(
     players: [p(PlayerColor.red, red), p(PlayerColor.yellow, yellow)],
     currentPlayerIndex: current,
@@ -331,12 +332,21 @@ void main() {
         yellow: [progressAt(yellow, target, ccw), -1, -1],
         direction: ccw,
       );
-      expect(moveFor(GameEngine.getLegalMoves(s, 3), 0).captured, const PieceRef(PlayerColor.yellow, 0));
+      expect(
+        moveFor(GameEngine.getLegalMoves(s, 3), 0).captured,
+        const PieceRef(PlayerColor.yellow, 0),
+      );
     });
 
     test('выход на старт, занятый чужой фишкой', () {
-      final s = makeState(yellow: [progressAt(yellow, redCell(0, ccw), ccw), -1, -1], direction: ccw);
-      expect(moveFor(GameEngine.getLegalMoves(s, 1), 0).captured, const PieceRef(PlayerColor.yellow, 0));
+      final s = makeState(
+        yellow: [progressAt(yellow, redCell(0, ccw), ccw), -1, -1],
+        direction: ccw,
+      );
+      expect(
+        moveFor(GameEngine.getLegalMoves(s, 1), 0).captured,
+        const PieceRef(PlayerColor.yellow, 0),
+      );
     });
 
     test('выход из дома против часовой: бросок 4 → три клетки после старта', () {
@@ -356,7 +366,10 @@ void main() {
           PlayerConfig(color: c, type: PlayerType.human, name: c.displayName),
       ], direction: ccw);
       expect(s.players.map((p) => p.color), [
-        PlayerColor.red, PlayerColor.green, PlayerColor.yellow, PlayerColor.blue,
+        PlayerColor.red,
+        PlayerColor.green,
+        PlayerColor.yellow,
+        PlayerColor.blue,
       ]);
     });
 
@@ -381,7 +394,9 @@ void main() {
         final dice = GameEngine.rollDice(random);
         s = GameEngine.applyRoll(s, dice);
         final moves = GameEngine.getLegalMoves(s, dice);
-        s = moves.isEmpty ? GameEngine.passTurn(s) : GameEngine.applyMove(s, Bot.chooseMove(moves)!);
+        s = moves.isEmpty
+            ? GameEngine.passTurn(s)
+            : GameEngine.applyMove(s, Bot.chooseMove(moves)!);
         // Инвариант: на одной клетке кольца не больше одной фишки.
         final ring = s.allPieces.map((p) => p.ringIndex(dir)).whereType<int>().toList();
         expect(ring.toSet().length, ring.length);
@@ -421,12 +436,67 @@ void main() {
     });
 
     test('сбитая фишка: съедено у ходящего, смерть у соперника', () {
-      final s = GameEngine.applyRoll(makeState(yellow: [progressAt(yellow, redCell(4)), -1, -1]), 5);
+      final s = GameEngine.applyRoll(
+        makeState(yellow: [progressAt(yellow, redCell(4)), -1, -1]),
+        5,
+      );
       final next = GameEngine.applyMove(s, moveFor(GameEngine.getLegalMoves(s, 5), 0));
       expect(next.playerOf(red).stats.captures, 1);
       expect(next.playerOf(red).stats.deaths, 0);
       expect(next.playerOf(yellow).stats.deaths, 1);
       expect(next.playerOf(yellow).stats.captures, 0);
+    });
+  });
+
+  group('лунка дома сбитой фишки', () {
+    test('сбитая фишка встаёт в самую дальнюю от центра свободную лунку, а не в свою', () {
+      final far = BoardGeometry.homeSlotsFarFirst(yellow, cw);
+      final s0 = makeState(yellow: [-1, -1, -1]);
+      // Обе дальние лунки свободны: фишка из самой дальней ушла далеко, а фишка
+      // из средней стоит на клетке, куда придёт красная.
+      final pieces = [
+        for (final p in s0.playerOf(yellow).pieces)
+          if (p.homeSlot == far[0])
+            p.copyWith(progress: 10)
+          else if (p.homeSlot == far[1])
+            p.copyWith(progress: progressAt(yellow, redCell(4)))
+          else
+            p,
+      ];
+      final s = GameEngine.applyRoll(
+        s0.copyWith(
+          players: [
+            s0.players[0],
+            s0.players[1].copyWith(pieces: pieces),
+          ],
+        ),
+        5,
+      );
+      final m = moveFor(GameEngine.getLegalMoves(s, 5), 0);
+      final victim = GameEngine.applyMove(s, m).pieceOf(m.captured!);
+      expect(victim.isHome, isTrue);
+      expect(victim.homeSlot, far[0]);
+    });
+
+    test('если дальняя занята — следующая по удалённости', () {
+      final far = BoardGeometry.homeSlotsFarFirst(yellow, cw);
+      final s0 = makeState(yellow: [-1, -1, -1]);
+      // Вышла фишка из средней по удалённости лунки — сбитая вернётся в неё.
+      final pieces = [
+        for (final p in s0.playerOf(yellow).pieces)
+          p.homeSlot == far[1] ? p.copyWith(progress: progressAt(yellow, redCell(4))) : p,
+      ];
+      final s = GameEngine.applyRoll(
+        s0.copyWith(
+          players: [
+            s0.players[0],
+            s0.players[1].copyWith(pieces: pieces),
+          ],
+        ),
+        5,
+      );
+      final m = moveFor(GameEngine.getLegalMoves(s, 5), 0);
+      expect(GameEngine.applyMove(s, m).pieceOf(m.captured!).homeSlot, far[1]);
     });
   });
 }

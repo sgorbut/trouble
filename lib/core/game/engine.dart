@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import '../constants.dart';
+import 'board_geometry.dart';
 import 'models.dart';
 
 /// Описание игрока для старта партии.
@@ -116,6 +117,19 @@ class GameEngine {
     PlayerStats Function(PlayerStats) update,
   ) => [for (final p in state.players) p.color == color ? p.copyWith(stats: update(p.stats)) : p];
 
+  /// Лунка, в которую встаёт сбитая фишка цвета [owner]: самая дальняя от центра поля
+  /// из свободных (занятые — лунки фишек, уже стоящих дома).
+  static int returnSlot(GameState state, PlayerColor owner) {
+    final taken = {
+      for (final p in state.playerOf(owner).pieces)
+        if (p.isHome) p.homeSlot,
+    };
+    return BoardGeometry.homeSlotsFarFirst(
+      owner,
+      state.direction,
+    ).firstWhere((s) => !taken.contains(s));
+  }
+
   /// Выполняет ход и передаёт очередь (или даёт дополнительный бросок после 6).
   static GameState applyMove(GameState state, Move move) {
     final moverColor = move.piece.owner;
@@ -144,7 +158,7 @@ class GameEngine {
               else if (move.captured != null &&
                   p.owner == move.captured!.owner &&
                   p.id == move.captured!.id)
-                p.copyWith(progress: homeProgress)
+                p.copyWith(progress: homeProgress, homeSlot: returnSlot(state, p.owner))
               else
                 p,
           ],

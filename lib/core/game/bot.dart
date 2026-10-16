@@ -65,9 +65,9 @@ class Bot {
       BotStrategy.leaveHome => farthest(moves.where((m) => m.leavesHome)),
       BotStrategy.farthest => farthest(moves),
       BotStrategy.nearest => () {
-          final onRing = moves.where((m) => !m.leavesHome).toList();
-          return onRing.isEmpty ? null : onRing.reduce((a, b) => b.from < a.from ? b : a);
-        }(),
+        final onRing = moves.where((m) => !m.leavesHome).toList();
+        return onRing.isEmpty ? null : onRing.reduce((a, b) => b.from < a.from ? b : a);
+      }(),
       BotStrategy.any => moves[(random ?? Random()).nextInt(moves.length)],
     };
   }
