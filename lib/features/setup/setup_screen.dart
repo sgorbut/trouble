@@ -110,7 +110,13 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                     Expanded(
                       child: Column(
                         children: [
-                          Text('Число игроков', style: Theme.of(context).textTheme.titleMedium),
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              'Число игроков',
+                              style: Theme.of(context).textTheme.titleMedium,
+                            ),
+                          ),
                           const SizedBox(height: 8),
                           SegmentedButton<int>(
                             segments: const [
@@ -119,6 +125,8 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                               ButtonSegment(value: 4, label: Text('4')),
                             ],
                             selected: {_count},
+                            // Без галочки — на узком экране три кнопки помещаются.
+                            showSelectedIcon: false,
                             onSelectionChanged: (s) => setState(() => _count = s.first),
                           ),
                         ],
@@ -207,13 +215,13 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
     if (picked != null) setState(() => _setAvatar(slot, picked));
   }
 
-  Widget _quickNames(_Slot slot) {
+  Widget _quickNames(_Slot slot, double chipOuter) {
     final c = slot.color;
     final controller = slot.name;
     return ValueListenableBuilder<TextEditingValue>(
       valueListenable: controller,
       builder: (context, value, _) => Wrap(
-        spacing: 6,
+        spacing: _chipGap,
         runSpacing: 6,
         children: [
           // Имя по аватару, имя-цвет (только для своего цвета), затем общие имена.
@@ -225,12 +233,11 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
             ChoiceChip(
               // Одинаковая ширина — имена стоят как по сетке; влезает 9 букв («Обезьянка»).
               label: SizedBox(
-                width: _nameChipWidth,
-                child: Text(
-                  name,
-                  textAlign: TextAlign.center,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                width: chipOuter - _chipChrome,
+                // На узком экране кнопки уже — длинное имя чуть уменьшается, не обрезаясь.
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(name, textAlign: TextAlign.center, maxLines: 1),
                 ),
               ),
               showCheckmark: false,
@@ -308,11 +315,17 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
     );
   }
 
-  /// Ширина поля имени: 18 символов плюс кнопка очистки.
-  static const _nameFieldWidth = 240.0;
-
-  /// Ширина подписи в кнопке быстрого имени.
+  /// Ширина подписи в кнопке быстрого имени и всей кнопки (подпись + отступы чипа).
   static const _nameChipWidth = 78.0;
+  static const _chipChrome = 34.0; // отступы и рамка чипа вокруг подписи
+  static const _nameChipOuter = _nameChipWidth + _chipChrome;
+  static const _chipGap = 6.0;
+
+  static const _avatarSize = 56.0;
+  static const _avatarGap = 14.0;
+
+  /// Минимальный зазор между сеткой и правыми блоками (цвет, человек/бот).
+  static const _sideGap = 16.0;
 
   /// Общие размеры блоков выбора цвета и человек/бот.
   static const _pickerWidth = 72.0;
@@ -403,41 +416,48 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
       ),
       child: Padding(
         padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Аватар, имя и выбор цвета — в одном ряду.
-            Row(
+        // Быстрые имена — сеткой в 3 колонки (или в 2 на узком экране); поле имени
+        // заканчивается ровно там же, где сетка, — по её правому краю.
+        child: LayoutBuilder(
+          builder: (context, box) {
+            final free = box.maxWidth - _pickerWidth - _sideGap;
+            final cols = free >= _gridWidth(3, _nameChipOuter) ? 3 : 2;
+            // В 2 колонки на узком экране кнопки сужаются, чтобы сетка влезла.
+            final chipOuter = cols == 3
+                ? _nameChipOuter
+                : min(_nameChipOuter, (free - _chipGap) / 2);
+            final grid = _gridWidth(cols, chipOuter);
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Tooltip(
-                  message: 'Выбрать аватар',
-                  child: InkResponse(
-                    onTap: () => _pickAvatar(slot),
-                    radius: 32,
-                    child: Stack(
-                      clipBehavior: Clip.none,
-                      children: [
-                        PlayerAvatar(color: c, avatar: slot.avatar, size: 56),
-                        Positioned(
-                          right: -4,
-                          bottom: -4,
-                          child: CircleAvatar(
-                            radius: 11,
-                            backgroundColor: c.dark,
-                            child: const Icon(Icons.edit, size: 13, color: Colors.white),
-                          ),
+                // Аватар, имя и выбор цвета — в одном ряду.
+                Row(
+                  children: [
+                    Tooltip(
+                      message: 'Выбрать аватар',
+                      child: InkResponse(
+                        onTap: () => _pickAvatar(slot),
+                        radius: 32,
+                        child: Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            PlayerAvatar(color: c, avatar: slot.avatar, size: _avatarSize),
+                            Positioned(
+                              right: -4,
+                              bottom: -4,
+                              child: CircleAvatar(
+                                radius: 11,
+                                backgroundColor: c.dark,
+                                child: const Icon(Icons.edit, size: 13, color: Colors.white),
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
-                  ),
-                ),
-                const SizedBox(width: 14),
-                // Поле имени — под 16–18 символов, не шире (и не уже на узком экране).
-                Expanded(
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: _nameFieldWidth),
+                    const SizedBox(width: _avatarGap),
+                    SizedBox(
+                      width: grid - _avatarSize - _avatarGap,
                       child: TextField(
                         controller: slot.name,
                         maxLength: 18,
@@ -457,25 +477,28 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                         ),
                       ),
                     ),
-                  ),
+                    const Spacer(),
+                    _colorPicker(slot),
+                  ],
                 ),
-                const SizedBox(width: 24),
-                _colorPicker(slot),
+                const SizedBox(height: 10),
+                // Быстрые имена и в правом нижнем углу — человек/бот.
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    SizedBox(width: grid, child: _quickNames(slot, chipOuter)),
+                    const Spacer(),
+                    _typePicker(slot),
+                  ],
+                ),
               ],
-            ),
-            const SizedBox(height: 10),
-            // Быстрые имена и в правом нижнем углу — человек/бот.
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Expanded(child: _quickNames(slot)),
-                const SizedBox(width: 16),
-                _typePicker(slot),
-              ],
-            ),
-          ],
+            );
+          },
         ),
       ),
     );
   }
+
+  /// Ширина сетки быстрых имён из [cols] колонок.
+  static double _gridWidth(int cols, double chipOuter) => cols * chipOuter + (cols - 1) * _chipGap;
 }
