@@ -83,16 +83,14 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
         PlayerConfig(
           color: slot.color,
           type: slot.type,
-          name: slot.name.text.trim().isEmpty
-              ? slot.color.displayName
-              : slot.name.text.trim(),
+          name: slot.name.text.trim().isEmpty ? slot.color.displayName : slot.name.text.trim(),
           avatar: slot.avatar,
         ),
     ];
     ref.read(gameControllerProvider.notifier).start(configs);
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute<void>(builder: (_) => const GameScreen()),
-    );
+    Navigator.of(
+      context,
+    ).pushReplacement(MaterialPageRoute<void>(builder: (_) => const GameScreen()));
   }
 
   @override
@@ -113,10 +111,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                     Expanded(
                       child: Column(
                         children: [
-                          Text(
-                            'Число игроков',
-                            style: Theme.of(context).textTheme.titleMedium,
-                          ),
+                          Text('Число игроков', style: Theme.of(context).textTheme.titleMedium),
                           const SizedBox(height: 8),
                           SegmentedButton<int>(
                             segments: const [
@@ -223,16 +218,18 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
         runSpacing: 6,
         children: [
           // Имя по аватару, имя-цвет (только для своего цвета), затем общие имена.
-          for (final name in {avatarName(slot.avatar), c.displayName, ...quickNames}.where((n) => n.isNotEmpty))
+          for (final name in {
+            avatarName(slot.avatar),
+            c.displayName,
+            ...quickNames,
+          }.where((n) => n.isNotEmpty))
             ChoiceChip(
               label: Text(name),
               visualDensity: VisualDensity.compact,
               selected: value.text.trim() == name,
               onSelected: (_) {
                 controller.text = name;
-                controller.selection = TextSelection.collapsed(
-                  offset: name.length,
-                );
+                controller.selection = TextSelection.collapsed(offset: name.length);
               },
             ),
         ],
@@ -241,15 +238,19 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
   }
 
   /// Выбор цвета: четыре кружка; занятый другим игроком цвет помечен его номером.
+  /// Выбор цвета квадратом 2×2 — как дома на поле: красный и синий сверху,
+  /// зелёный и жёлтый снизу.
   Widget _colorPicker(_Slot slot) {
-    return Row(
+    Widget row(PlayerColor left, PlayerColor right) => Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [_colorDot(slot, left), const SizedBox(width: 6), _colorDot(slot, right)],
+    );
+    return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        for (final color in PlayerColor.values)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: _colorDot(slot, color),
-          ),
+        row(PlayerColor.red, PlayerColor.blue),
+        const SizedBox(height: 6),
+        row(PlayerColor.green, PlayerColor.yellow),
       ],
     );
   }
@@ -273,16 +274,9 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: color.color.withValues(alpha: takenByOther ? 0.35 : 1),
-            border: Border.all(
-              color: selected ? color.dark : Colors.transparent,
-              width: 3,
-            ),
+            border: Border.all(color: selected ? color.dark : Colors.transparent, width: 3),
             boxShadow: [
-              if (selected)
-                BoxShadow(
-                  color: color.color.withValues(alpha: 0.5),
-                  blurRadius: 8,
-                ),
+              if (selected) BoxShadow(color: color.color.withValues(alpha: 0.5), blurRadius: 8),
             ],
           ),
           child: Stack(
@@ -324,14 +318,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Игрок ${index + 1}',
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                color: c.dark,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 8),
+            // Аватар, имя и выбор цвета — в одном ряду.
             Row(
               children: [
                 Tooltip(
@@ -349,11 +336,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                           child: CircleAvatar(
                             radius: 11,
                             backgroundColor: c.dark,
-                            child: const Icon(
-                              Icons.edit,
-                              size: 13,
-                              color: Colors.white,
-                            ),
+                            child: const Icon(Icons.edit, size: 13, color: Colors.white),
                           ),
                         ),
                       ],
@@ -367,7 +350,9 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                     maxLength: 16,
                     textCapitalization: TextCapitalization.words,
                     decoration: InputDecoration(
-                      labelText: 'Имя',
+                      labelText: 'Имя игрока ${index + 1}',
+                      labelStyle: TextStyle(color: c.dark),
+                      floatingLabelStyle: TextStyle(color: c.dark, fontWeight: FontWeight.bold),
                       hintText: 'Введите своё или выберите ниже',
                       counterText: '',
                       isDense: true,
@@ -379,36 +364,28 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                     ),
                   ),
                 ),
+                const SizedBox(width: 14),
+                _colorPicker(slot),
               ],
             ),
             const SizedBox(height: 10),
             _quickNames(slot),
             const SizedBox(height: 12),
-            // Человек/бот и цвет — в одной строке; на узком экране цвета переносятся.
-            Wrap(
-              spacing: 16,
-              runSpacing: 10,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                SegmentedButton<PlayerType>(
-                  segments: const [
-                    ButtonSegment(
-                      value: PlayerType.human,
-                      icon: Icon(Icons.person),
-                      label: Text('Человек'),
-                    ),
-                    ButtonSegment(
-                      value: PlayerType.bot,
-                      icon: Icon(Icons.smart_toy_outlined),
-                      label: Text('Бот'),
-                    ),
-                  ],
-                  selected: {slot.type},
-                  onSelectionChanged: (s) =>
-                      setState(() => slot.type = s.first),
+            SegmentedButton<PlayerType>(
+              segments: const [
+                ButtonSegment(
+                  value: PlayerType.human,
+                  icon: Icon(Icons.person),
+                  label: Text('Человек'),
                 ),
-                _colorPicker(slot),
+                ButtonSegment(
+                  value: PlayerType.bot,
+                  icon: Icon(Icons.smart_toy_outlined),
+                  label: Text('Бот'),
+                ),
               ],
+              selected: {slot.type},
+              onSelectionChanged: (s) => setState(() => slot.type = s.first),
             ),
           ],
         ),
@@ -438,6 +415,5 @@ class _QuarterPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_QuarterPainter old) =>
-      old.color != color || old.paintColor != paintColor;
+  bool shouldRepaint(_QuarterPainter old) => old.color != color || old.paintColor != paintColor;
 }
