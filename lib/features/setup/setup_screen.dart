@@ -394,7 +394,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                 // Цвет (квадрат 2×2) и под ним человек/бот.
                 Column(
                   mainAxisSize: MainAxisSize.min,
-                  children: [_colorPicker(slot), const SizedBox(height: 8), _typePicker(slot)],
+                  children: [_colorPicker(slot), const SizedBox(height: 16), _typePicker(slot)],
                 ),
               ],
             ),
