@@ -13,7 +13,7 @@ class StatsScreen extends StatelessWidget {
   final PlayerColor? winner;
 
   static final List<(String, int Function(PlayerStats))> _categories = [
-    ('Ходы', (s) => s.moves),
+    ('Ходы', (s) => s.cells),
     ('Бонусы', (s) => s.bonuses),
     ('Подбито', (s) => s.captures),
     ('Потери', (s) => s.deaths),

@@ -124,7 +124,7 @@ class GameEngine {
       var s = player.stats;
       if (player.color == moverColor) {
         s = s.copyWith(
-          moves: s.moves + 1,
+          cells: s.cells + (move.to - move.from),
           bonuses: s.bonuses + (move.bonus ? 1 : 0),
           captures: s.captures + (move.isCapture ? 1 : 0),
         );

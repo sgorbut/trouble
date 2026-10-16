@@ -118,14 +118,14 @@ class Player {
 /// откатывает и её.
 class PlayerStats {
   const PlayerStats({
-    this.moves = 0,
+    this.cells = 0,
     this.bonuses = 0,
     this.captures = 0,
     this.deaths = 0,
   });
 
-  /// Сделано ходов фишками.
-  final int moves;
+  /// Клеток пройдено фишками (выход из дома на старт — тоже шаг).
+  final int cells;
 
   /// Дополнительных бросков: выпавших шестёрок и остановок на бонусной клетке.
   final int bonuses;
@@ -136,8 +136,8 @@ class PlayerStats {
   /// Своих фишек сбито соперниками.
   final int deaths;
 
-  PlayerStats copyWith({int? moves, int? bonuses, int? captures, int? deaths}) => PlayerStats(
-        moves: moves ?? this.moves,
+  PlayerStats copyWith({int? cells, int? bonuses, int? captures, int? deaths}) => PlayerStats(
+        cells: cells ?? this.cells,
         bonuses: bonuses ?? this.bonuses,
         captures: captures ?? this.captures,
         deaths: deaths ?? this.deaths,

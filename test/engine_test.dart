@@ -394,12 +394,18 @@ void main() {
   group('статистика', () {
     const red = PlayerColor.red;
 
-    test('ход фишкой засчитывается в ходы', () {
+    test('в ходы засчитываются пройденные клетки', () {
       final s = GameEngine.applyRoll(makeState(red: [0, -1, -1]), 2);
       final next = GameEngine.applyMove(s, moveFor(GameEngine.getLegalMoves(s, 2), 0));
-      expect(next.playerOf(red).stats.moves, 1);
+      expect(next.playerOf(red).stats.cells, 2);
       expect(next.playerOf(red).stats.bonuses, 0);
-      expect(next.playerOf(yellow).stats.moves, 0);
+      expect(next.playerOf(yellow).stats.cells, 0);
+    });
+
+    test('выход из дома: клеток столько, сколько выпало', () {
+      final s = GameEngine.applyRoll(makeState(), 4);
+      final next = GameEngine.applyMove(s, moveFor(GameEngine.getLegalMoves(s, 4), 0));
+      expect(next.playerOf(red).stats.cells, 4);
     });
 
     test('шестёрка — бонус', () {
