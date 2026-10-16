@@ -99,68 +99,51 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Новая игра')),
-      body: Stack(
-        children: [
-          // Схема поля фоном: углы экрана подсвечены цветами домов, как на игровом поле.
-          Positioned.fill(
-            child: IgnorePointer(
-              // Перерисовка и при вводе имени (контроллеры не вызывают setState).
-              child: ListenableBuilder(
-                listenable: Listenable.merge([
-                  for (final slot in _slots) slot.name,
-                ]),
-                builder: (context, _) => CustomPaint(
-                  painter: _CornerGlowPainter({
-                    for (final slot in _slots.take(_count))
-                      slot.color: (
-                        avatar: slot.avatar,
-                        name: slot.name.text.trim().isEmpty
-                            ? slot.color.displayName
-                            : slot.name.text.trim(),
-                      ),
-                  }),
-                ),
-              ),
-            ),
-          ),
-          SafeArea(
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 560),
-                child: ListView(
-                  padding: const EdgeInsets.all(16),
+      body: SafeArea(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 560),
+            child: ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                // Число игроков и кнопка «Начать» — в одной строке.
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text(
-                      'Число игроков',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 8),
-                    SegmentedButton<int>(
-                      segments: const [
-                        ButtonSegment(value: 2, label: Text('2')),
-                        ButtonSegment(value: 3, label: Text('3')),
-                        ButtonSegment(value: 4, label: Text('4')),
-                      ],
-                      selected: {_count},
-                      onSelectionChanged: (s) =>
-                          setState(() => _count = s.first),
-                    ),
-                    const SizedBox(height: 20),
-                    for (var i = 0; i < _count; i++) _playerCard(i, _slots[i]),
-                    const SizedBox(height: 16),
-                    Center(
-                      child: FilledButton.icon(
-                        icon: const Icon(Icons.play_arrow),
-                        onPressed: _start,
-                        label: const Text('Начать'),
+                    Expanded(
+                      child: Column(
+                        children: [
+                          Text(
+                            'Число игроков',
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                          const SizedBox(height: 8),
+                          SegmentedButton<int>(
+                            segments: const [
+                              ButtonSegment(value: 2, label: Text('2')),
+                              ButtonSegment(value: 3, label: Text('3')),
+                              ButtonSegment(value: 4, label: Text('4')),
+                            ],
+                            selected: {_count},
+                            onSelectionChanged: (s) => setState(() => _count = s.first),
+                          ),
+                        ],
                       ),
+                    ),
+                    const SizedBox(width: 12),
+                    FilledButton.icon(
+                      icon: const Icon(Icons.play_arrow),
+                      onPressed: _start,
+                      label: const Text('Начать'),
                     ),
                   ],
                 ),
-              ),
+                const SizedBox(height: 20),
+                for (var i = 0; i < _count; i++) _playerCard(i, _slots[i]),
+              ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -302,17 +285,26 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                 ),
             ],
           ),
-          child: selected
-              ? Icon(Icons.check, size: 18, color: color.onColor)
-              : takenByOther
-              ? Text(
-                  '${owner + 1}',
-                  style: TextStyle(
-                    color: color.dark,
-                    fontWeight: FontWeight.bold,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Positioned.fill(
+                child: CustomPaint(
+                  painter: _QuarterPainter(
+                    color,
+                    color.dark.withValues(alpha: takenByOther ? 0.35 : 0.7),
                   ),
-                )
-              : null,
+                ),
+              ),
+              if (selected)
+                Icon(Icons.check, size: 18, color: color.onColor)
+              else if (takenByOther)
+                Text(
+                  '${owner + 1}',
+                  style: TextStyle(color: color.dark, fontWeight: FontWeight.bold),
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -425,81 +417,27 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
   }
 }
 
-/// Фон экрана настройки: в каждом углу — свечение цвета дома, как на поле
-/// (красный — левый верхний, синий — правый верхний, жёлтый — правый нижний,
-/// зелёный — левый нижний). Выбранные цвета ярче и с аватаром игрока.
-class _CornerGlowPainter extends CustomPainter {
-  _CornerGlowPainter(this.active);
+/// Маркер на кружке выбора цвета: закрашенная четверть показывает, в каком углу
+/// поля дом этого цвета (красный — левый верхний, синий — правый верхний,
+/// жёлтый — правый нижний, зелёный — левый нижний).
+class _QuarterPainter extends CustomPainter {
+  _QuarterPainter(this.color, this.paintColor);
 
-  /// Цвета участников партии → их аватары и имена.
-  final Map<PlayerColor, ({String avatar, String name})> active;
-
-  static Alignment _corner(PlayerColor c) => switch (c) {
-    PlayerColor.red => Alignment.topLeft,
-    PlayerColor.blue => Alignment.topRight,
-    PlayerColor.yellow => Alignment.bottomRight,
-    PlayerColor.green => Alignment.bottomLeft,
-  };
+  final PlayerColor color;
+  final Color paintColor;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final radius = min(size.width, size.height) * 0.6;
-    for (final c in PlayerColor.values) {
-      final player = active[c];
-      final center = _corner(c).alongSize(size);
-      canvas.drawCircle(
-        center,
-        radius,
-        Paint()
-          ..shader = RadialGradient(
-            colors: [
-              c.color.withValues(alpha: player != null ? 0.7 : 0.32),
-              c.color.withValues(alpha: 0),
-            ],
-          ).createShader(Rect.fromCircle(center: center, radius: radius)),
-      );
-      if (player != null) _paintPlayer(canvas, size, c, player.avatar, player.name);
-    }
-  }
-
-  /// Аватар и под ним имя игрока у его угла.
-  void _paintPlayer(Canvas canvas, Size size, PlayerColor c, String avatar, String name) {
-    const margin = 14.0;
-    const maxWidth = 120.0;
-    final a = _corner(c);
-    final left = a.x < 0;
-    final top = a.y < 0;
-
-    final avatarTp = TextPainter(
-      text: TextSpan(text: avatar, style: const TextStyle(fontSize: 34)),
-      textDirection: TextDirection.ltr,
-    )..layout();
-    final nameTp = TextPainter(
-      text: TextSpan(
-        text: name,
-        style: TextStyle(
-          fontSize: 15,
-          fontWeight: FontWeight.bold,
-          color: c.dark,
-          shadows: const [Shadow(color: Colors.white, blurRadius: 4)],
-        ),
-      ),
-      textDirection: TextDirection.ltr,
-      textAlign: left ? TextAlign.left : TextAlign.right,
-      maxLines: 1,
-      ellipsis: '…',
-    )..layout(maxWidth: maxWidth);
-
-    final blockHeight = avatarTp.height + 2 + nameTp.height;
-    final y = top ? margin : size.height - blockHeight - 24;
-    double xFor(double w) => left ? margin : size.width - w - margin;
-
-    if (avatar.isNotEmpty) avatarTp.paint(canvas, Offset(xFor(avatarTp.width), y));
-    nameTp.paint(canvas, Offset(xFor(nameTp.width), y + avatarTp.height + 2));
+    final start = switch (color) {
+      PlayerColor.red => pi,
+      PlayerColor.blue => -pi / 2,
+      PlayerColor.yellow => 0.0,
+      PlayerColor.green => pi / 2,
+    };
+    canvas.drawArc(Offset.zero & size, start, pi / 2, true, Paint()..color = paintColor);
   }
 
   @override
-  bool shouldRepaint(_CornerGlowPainter old) =>
-      old.active.length != active.length ||
-      old.active.entries.any((e) => active[e.key] != e.value);
+  bool shouldRepaint(_QuarterPainter old) =>
+      old.color != color || old.paintColor != paintColor;
 }
