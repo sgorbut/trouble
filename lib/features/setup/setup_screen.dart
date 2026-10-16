@@ -339,8 +339,8 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
     );
   }
 
-  /// Секция цвета: выбранный — насыщенный с галочкой, занятый другим игроком —
-  /// бледный с его номером (нажатие меняет игроков цветами), свободный — посередине.
+  /// Секция цвета: цвет всегда одинаковый; выбранный отмечен галочкой, занятый другим
+  /// игроком — его номером (нажатие меняет игроков цветами).
   Widget _colorCell(_Slot slot, PlayerColor color, BorderRadius shape) {
     final selected = slot.color == color;
     final owner = _slots.indexWhere((s) => s.color == color);
@@ -350,7 +350,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
           ? '${color.displayName} — у игрока ${owner + 1}, поменяться'
           : color.displayName,
       child: Material(
-        color: color.color.withValues(alpha: selected ? 1 : (takenByOther ? 0.25 : 0.55)),
+        color: color.color,
         borderRadius: shape,
         child: InkWell(
           onTap: () => _setColor(slot, color),
@@ -363,7 +363,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                   : takenByOther
                   ? Text(
                       '${owner + 1}',
-                      style: TextStyle(color: color.dark, fontWeight: FontWeight.bold),
+                      style: TextStyle(color: color.onColor, fontWeight: FontWeight.bold),
                     )
                   : null,
             ),
