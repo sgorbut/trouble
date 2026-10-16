@@ -238,6 +238,44 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
   }
 
   /// Выбор цвета: четыре кружка; занятый другим игроком цвет помечен его номером.
+  /// Человек или бот — две кнопки-иконки, по ширине как квадрат цветов.
+  Widget _typePicker(_Slot slot) {
+    final c = slot.color;
+    Widget button(PlayerType type, IconData icon, String tooltip) {
+      final selected = slot.type == type;
+      return Tooltip(
+        message: tooltip,
+        child: InkResponse(
+          onTap: () => setState(() => slot.type = type),
+          radius: 20,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: selected ? c.color.withValues(alpha: 0.25) : Colors.transparent,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: selected ? c.dark : Colors.black26,
+                width: selected ? 2 : 1,
+              ),
+            ),
+            child: Icon(icon, size: 20, color: selected ? c.dark : Colors.black45),
+          ),
+        ),
+      );
+    }
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        button(PlayerType.human, Icons.person, 'Человек'),
+        const SizedBox(width: 6),
+        button(PlayerType.bot, Icons.smart_toy_outlined, 'Бот'),
+      ],
+    );
+  }
+
   /// Выбор цвета квадратом 2×2 — как дома на поле: красный и синий сверху,
   /// зелёный и жёлтый снизу.
   Widget _colorPicker(_Slot slot) {
@@ -279,26 +317,14 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
               if (selected) BoxShadow(color: color.color.withValues(alpha: 0.5), blurRadius: 8),
             ],
           ),
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              Positioned.fill(
-                child: CustomPaint(
-                  painter: _QuarterPainter(
-                    color,
-                    color.dark.withValues(alpha: takenByOther ? 0.35 : 0.7),
-                  ),
-                ),
-              ),
-              if (selected)
-                Icon(Icons.check, size: 18, color: color.onColor)
-              else if (takenByOther)
-                Text(
+          child: selected
+              ? Icon(Icons.check, size: 18, color: color.onColor)
+              : takenByOther
+              ? Text(
                   '${owner + 1}',
                   style: TextStyle(color: color.dark, fontWeight: FontWeight.bold),
-                ),
-            ],
-          ),
+                )
+              : null,
         ),
       ),
     );
@@ -364,56 +390,19 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(width: 14),
-                _colorPicker(slot),
+                const SizedBox(width: 24),
+                // Цвет (квадрат 2×2) и под ним человек/бот.
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [_colorPicker(slot), const SizedBox(height: 8), _typePicker(slot)],
+                ),
               ],
             ),
             const SizedBox(height: 10),
             _quickNames(slot),
-            const SizedBox(height: 12),
-            SegmentedButton<PlayerType>(
-              segments: const [
-                ButtonSegment(
-                  value: PlayerType.human,
-                  icon: Icon(Icons.person),
-                  label: Text('Человек'),
-                ),
-                ButtonSegment(
-                  value: PlayerType.bot,
-                  icon: Icon(Icons.smart_toy_outlined),
-                  label: Text('Бот'),
-                ),
-              ],
-              selected: {slot.type},
-              onSelectionChanged: (s) => setState(() => slot.type = s.first),
-            ),
           ],
         ),
       ),
     );
   }
-}
-
-/// Маркер на кружке выбора цвета: закрашенная четверть показывает, в каком углу
-/// поля дом этого цвета (красный — левый верхний, синий — правый верхний,
-/// жёлтый — правый нижний, зелёный — левый нижний).
-class _QuarterPainter extends CustomPainter {
-  _QuarterPainter(this.color, this.paintColor);
-
-  final PlayerColor color;
-  final Color paintColor;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final start = switch (color) {
-      PlayerColor.red => pi,
-      PlayerColor.blue => -pi / 2,
-      PlayerColor.yellow => 0.0,
-      PlayerColor.green => pi / 2,
-    };
-    canvas.drawArc(Offset.zero & size, start, pi / 2, true, Paint()..color = paintColor);
-  }
-
-  @override
-  bool shouldRepaint(_QuarterPainter old) => old.color != color || old.paintColor != paintColor;
 }
