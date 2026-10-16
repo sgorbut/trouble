@@ -308,6 +308,9 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
     );
   }
 
+  /// Ширина поля имени: 18 символов плюс кнопка очистки.
+  static const _nameFieldWidth = 240.0;
+
   /// Ширина подписи в кнопке быстрого имени.
   static const _nameChipWidth = 78.0;
 
@@ -429,22 +432,29 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                   ),
                 ),
                 const SizedBox(width: 14),
+                // Поле имени — под 16–18 символов, не шире (и не уже на узком экране).
                 Expanded(
-                  child: TextField(
-                    controller: slot.name,
-                    maxLength: 16,
-                    textCapitalization: TextCapitalization.words,
-                    decoration: InputDecoration(
-                      labelText: 'Имя игрока ${index + 1}',
-                      labelStyle: TextStyle(color: c.dark),
-                      floatingLabelStyle: TextStyle(color: c.dark, fontWeight: FontWeight.bold),
-                      hintText: 'Введите своё или выберите ниже',
-                      counterText: '',
-                      isDense: true,
-                      suffixIcon: IconButton(
-                        tooltip: 'Очистить',
-                        icon: const Icon(Icons.clear, size: 18),
-                        onPressed: slot.name.clear,
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: _nameFieldWidth),
+                      child: TextField(
+                        controller: slot.name,
+                        maxLength: 18,
+                        textCapitalization: TextCapitalization.words,
+                        decoration: InputDecoration(
+                          labelText: 'Имя игрока ${index + 1}',
+                          labelStyle: TextStyle(color: c.dark),
+                          floatingLabelStyle: TextStyle(color: c.dark, fontWeight: FontWeight.bold),
+                          hintText: 'Введите своё или выберите ниже',
+                          counterText: '',
+                          isDense: true,
+                          suffixIcon: IconButton(
+                            tooltip: 'Очистить',
+                            icon: const Icon(Icons.clear, size: 18),
+                            onPressed: slot.name.clear,
+                          ),
+                        ),
                       ),
                     ),
                   ),
