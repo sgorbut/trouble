@@ -135,7 +135,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                 ],
               );
             }
-            const panelHeight = 124.0;
+            const panelHeight = 128.0;
             final side = min(c.maxWidth, c.maxHeight - panelHeight) - pad * 2;
             return Column(
               children: [
@@ -164,7 +164,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
 class _ControlPanel extends StatelessWidget {
   const _ControlPanel({required this.view, required this.vertical});
 
-  static const indicatorHeight = 84.0;
+  static const indicatorHeight = 100.0;
 
   final GameViewState view;
   final bool vertical;
@@ -201,7 +201,7 @@ class _ControlPanel extends StatelessWidget {
     final player = game.currentPlayer;
     final color = player.color;
 
-    // Фиксированная высота — под имя в одну строку и подсказку в две (самые длинные
+    // Фиксированная высота — под имя в одну строку и подсказку в три (самые длинные
     // подсказки: «Нажмите фишку ещё раз или клетку назначения», ничья в жребии),
     // чтобы панель не прыгала при смене текста. Цвет — как у зоны дома ходящего игрока.
     final textColor = color.dark;
@@ -229,7 +229,7 @@ class _ControlPanel extends StatelessWidget {
                         player.name,
                         overflow: TextOverflow.ellipsis,
                         maxLines: 1,
-                        style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 18),
+                        style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 18, height: 1.2),
                       ),
                     ),
                     if (player.isBot) ...[
@@ -241,7 +241,7 @@ class _ControlPanel extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   _hint(),
-                  maxLines: 2,
+                  maxLines: 3,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(color: Colors.black87, fontSize: 14, height: 1.2),
                 ),
