@@ -13,10 +13,10 @@ class StatsScreen extends StatelessWidget {
   final PlayerColor? winner;
 
   static final List<(String, int Function(PlayerStats))> _categories = [
-    ('Ходов', (s) => s.moves),
-    ('Бонусов', (s) => s.bonuses),
-    ('Съедено', (s) => s.captures),
-    ('Смертей', (s) => s.deaths),
+    ('Ходы', (s) => s.moves),
+    ('Бонусы', (s) => s.bonuses),
+    ('Подбито', (s) => s.captures),
+    ('Потери', (s) => s.deaths),
   ];
 
   @override
@@ -106,8 +106,10 @@ class StatsScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 20),
                   Text(
-                    'Бонусы — выпавшие шестёрки и остановки на клетке 🎁.\n'
-                    'Съедено — сбитые фишки соперников, смерти — свои сбитые фишки.',
+                    '\nХоды — сколько клеток пройдено за игру.'
+                    '\nБонусы — остановки на клетке 🎁 и выпавшие шестёрки.'
+                    '\nПодбито — сбитые фишки соперника.'
+                    '\nПотери — свои сбитые фишки.',
                     style: theme.textTheme.bodySmall?.copyWith(color: Colors.black54),
                   ),
                 ],
