@@ -336,18 +336,35 @@ class _Scores extends StatelessWidget {
         ],
       );
     }
-    // Сетка 2×2 на месте прежнего кубика.
-    final rows = <Widget>[];
-    for (var i = 0; i < tiles.length; i += 2) {
-      rows.add(Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          tiles[i],
-          if (i + 1 < tiles.length) ...[const SizedBox(width: 6), tiles[i + 1]],
-        ],
-      ));
-      if (i + 2 < tiles.length) rows.add(const SizedBox(height: 6));
-    }
-    return Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.end, children: rows);
+    // Сетка 2×2 как дома на поле: красный и синий сверху, зелёный и жёлтый снизу.
+    // Место цвета, которого нет в партии, остаётся пустым, чтобы расположение совпадало
+    // с полем. Список столбиком (в ландшафте) идёт в порядке ходов.
+    final byColor = {for (var i = 0; i < players.length; i++) players[i].color: tiles[i]};
+    Widget cell(PlayerColor c) =>
+        byColor[c] ??
+        Visibility(
+          visible: false,
+          maintainSize: true,
+          maintainAnimation: true,
+          maintainState: true,
+          child: tiles.first,
+        );
+    Widget row(PlayerColor left, PlayerColor right) => Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [cell(left), const SizedBox(width: 6), cell(right)],
+        );
+    // Если два ряда не помещаются по высоте панели, сетка немного уменьшается.
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        row(PlayerColor.red, PlayerColor.blue),
+        const SizedBox(height: 6),
+        row(PlayerColor.green, PlayerColor.yellow),
+      ],
+      ),
+    );
   }
 }
