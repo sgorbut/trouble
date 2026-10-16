@@ -65,7 +65,6 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
   void _recolor(_Slot slot, PlayerColor color) {
     final name = slot.name.text.trim();
     if (name == slot.color.displayName) slot.name.text = color.displayName;
-    if (slot.avatar == defaultAvatarFor(slot.color)) _setAvatar(slot, defaultAvatarFor(color));
     slot.color = color;
   }
 
@@ -238,50 +237,77 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
   }
 
   /// Выбор цвета: четыре кружка; занятый другим игроком цвет помечен его номером.
-  /// Человек или бот — две строки «иконка + галочка», галочка у выбранного.
+  /// Человек или бот — две строки «иконка + галочка» в общей рамке, как у выбора числа
+  /// игроков; ширина как у квадрата цветов, чтобы блоки стояли в одну колонку.
   Widget _typePicker(_Slot slot) {
     final c = slot.color;
-    Widget row(PlayerType type, IconData icon, String tooltip) {
+    const width = _dotSize * 2 + _dotGap;
+    const radius = Radius.circular(16);
+    Widget row(PlayerType type, IconData icon, String tooltip, BorderRadius shape) {
       final selected = slot.type == type;
       return Tooltip(
         message: tooltip,
-        child: InkWell(
-          onTap: () => setState(() => slot.type = type),
-          borderRadius: BorderRadius.circular(8),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(icon, size: 24, color: selected ? c.dark : Colors.black38),
-                const SizedBox(width: 4),
-                SizedBox(
-                  width: 20,
-                  child: selected ? Icon(Icons.check, size: 20, color: c.dark) : null,
-                ),
-              ],
+        child: Material(
+          color: selected ? c.color.withValues(alpha: 0.2) : Colors.transparent,
+          borderRadius: shape,
+          child: InkWell(
+            onTap: () => setState(() => slot.type = type),
+            borderRadius: shape,
+            child: SizedBox(
+              height: 32,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(icon, size: 20, color: selected ? c.dark : Colors.black38),
+                  const SizedBox(width: 4),
+                  SizedBox(
+                    width: 18,
+                    child: selected ? Icon(Icons.check, size: 18, color: c.dark) : null,
+                  ),
+                ],
+              ),
             ),
           ),
         ),
       );
     }
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        row(PlayerType.human, Icons.person, 'Человек'),
-        const SizedBox(height: 4),
-        row(PlayerType.bot, Icons.smart_toy_outlined, 'Бот'),
-      ],
+    final outline = Theme.of(context).colorScheme.outline;
+    return Container(
+      width: width,
+      decoration: BoxDecoration(
+        border: Border.all(color: outline),
+        borderRadius: const BorderRadius.all(radius),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          row(PlayerType.human, Icons.person, 'Человек', const BorderRadius.vertical(top: radius)),
+          Divider(height: 1, thickness: 1, color: outline),
+          row(
+            PlayerType.bot,
+            Icons.smart_toy_outlined,
+            'Бот',
+            const BorderRadius.vertical(bottom: radius),
+          ),
+        ],
+      ),
     );
   }
+
+  static const _dotSize = 32.0;
+  static const _dotGap = 6.0;
 
   /// Выбор цвета квадратом 2×2 — как дома на поле: красный и синий сверху,
   /// зелёный и жёлтый снизу.
   Widget _colorPicker(_Slot slot) {
     Widget row(PlayerColor left, PlayerColor right) => Row(
       mainAxisSize: MainAxisSize.min,
-      children: [_colorDot(slot, left), const SizedBox(width: 6), _colorDot(slot, right)],
+      children: [
+        _colorDot(slot, left),
+        const SizedBox(width: _dotGap),
+        _colorDot(slot, right),
+      ],
     );
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -306,8 +332,8 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
         radius: 24,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 180),
-          width: 32,
-          height: 32,
+          width: _dotSize,
+          height: _dotSize,
           alignment: Alignment.center,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
