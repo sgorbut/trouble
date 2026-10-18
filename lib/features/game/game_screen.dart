@@ -336,12 +336,16 @@ class _Scores extends StatelessWidget {
         ],
       );
     }
-    // Двое игроков — одной строкой, начиная с красного и дальше по направлению движения
+    // Двое игроков — друг под другом, начиная с красного и дальше по направлению движения
     // (в этом порядке идут игроки партии).
     if (players.length == 2) {
-      return Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [tiles[0], const SizedBox(width: 6), tiles[1]],
+      return FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [tiles[0], const SizedBox(height: 6), tiles[1]],
+        ),
       );
     }
     // Сетка 2×2 как дома на поле: красный и синий сверху, зелёный и жёлтый снизу.
