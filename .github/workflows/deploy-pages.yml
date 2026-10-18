@@ -28,6 +28,8 @@ jobs:
           flutter-version: 3.44.1
           cache: true
 
+      # Личных имён в репозитории нет — берём образец с пустым списком.
+      - run: cp lib/ui/quick_names.example.dart lib/ui/quick_names.dart
       - run: flutter pub get
       - run: flutter analyze
       - run: flutter test

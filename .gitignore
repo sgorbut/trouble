@@ -44,3 +44,6 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Личные имена для быстрого выбора (образец — lib/ui/quick_names.example.dart)
+/lib/ui/quick_names.dart

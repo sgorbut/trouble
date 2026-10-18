@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import '../core/game/models.dart';
 import 'theme.dart';
 
+// Имена для быстрого выбора (quickNames) — в отдельном файле вне git.
+export 'quick_names.dart';
+
 /// Готовые аватары игроков (эмодзи — без файлов картинок).
 const List<String> presetAvatars = [
   '🦊',
@@ -54,8 +57,6 @@ const Map<String, String> avatarNames = {
 /// Имя для аватара; для неизвестного — пустая строка.
 String avatarName(String avatar) => avatarNames[avatar] ?? '';
 
-/// Имена для быстрого выбора на экране настройки партии.
-const List<String> quickNames = [];
 
 /// Аватары по умолчанию на этот запуск: четыре разных, выбираются случайно один раз
 /// при старте приложения.

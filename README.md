@@ -7,6 +7,7 @@
 ## Запуск
 
 ```bash
+cp lib/ui/quick_names.example.dart lib/ui/quick_names.dart   # свои быстрые имена (файл вне git)
 flutter pub get
 flutter run              # выбрать устройство: Android / iOS / Chrome / macOS
 flutter test             # unit-тесты движка и геометрии + сквозной тест партии ботов
